@@ -6,10 +6,16 @@ namespace TCC.Test
 {
 	class MainClass
 	{
-		private class TestClass
+		private struct TestClass
 		{
 			public int Test { get; set; }
 			public string Test2 { get; set; }
+			public static string TestStatic { get; set; }
+		}
+
+		public static class TestStatic
+		{
+			public static int Test { get; set; }
 		}
 
 		public static void Main(string[] args)
@@ -20,9 +26,12 @@ namespace TCC.Test
 			TestClass test = new TestClass();
 			test.Test = 42;
 			test.Test2 = "hello!";
+			TestClass.TestStatic = "Static!";
 
 			compiler.SetLibPath(AppDomain.CurrentDomain.BaseDirectory);
+
 			bind.BindClass(typeof(TestClass));
+			bind.BindClass(typeof(TestStatic));
 
 			GCHandle gch = GCHandle.Alloc(test);
 
@@ -46,7 +55,8 @@ int main()
 	Print(testclass_get_test2(t));
 	testclass_set_test2(t, ""testing"");
 	Print(testclass_get_test2(t));
-	testclass_gc_free(t);
+	testclass_set_teststatic(""hello static world"");
+	gc_free(t);
 	return 0;
 }
 ");

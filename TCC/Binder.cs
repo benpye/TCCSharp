@@ -28,14 +28,14 @@ namespace TCC
 		public Binder(CC tcc)
 		{
 			compiler = tcc;
+
+			// Generic GC free
+			compiler.AddSymbol("gc_free", GenerateGCFree());
 		}
 
 		public void BindClass(Type klass)
 		{
 			var klassName = klass.Name.ToLower();
-
-			// Handle destructor, hands control back to the GC
-			compiler.AddSymbol(klassName + "_gc_free", GenerateGCFree(klass));
 
 			// Properties
 			var props = klass.GetProperties();
@@ -53,75 +53,80 @@ namespace TCC
 
 		private Delegate GeneratePropertyGetter(Type klass, PropertyInfo property)
 		{
+			bool isStatic = property.GetGetMethod().IsStatic;
+
 			DynamicMethod propertyGetter = new DynamicMethod(
-				klass.Name + property.Name + "Getter",
+				"TCC" + klass.Name + property.Name + "Getter",
 				property.PropertyType,
-				new Type[]{ typeof(IntPtr) });
+				isStatic ? new Type[] { } : new Type[]{ typeof(IntPtr) });
 
 			ILGenerator il = propertyGetter.GetILGenerator();
-			il.DeclareLocal(typeof(GCHandle));
-			il.Emit(OpCodes.Ldarg_0);
-			il.Emit(OpCodes.Call, typeof(GCHandle).GetMethod("FromIntPtr"));
-			il.Emit(OpCodes.Stloc_0);
-			il.Emit(OpCodes.Ldloca_S, 0);
-			il.Emit(OpCodes.Call, typeof(GCHandle).GetMethod("get_Target"));
-			if(klass.IsValueType)
-				il.Emit(OpCodes.Unbox, klass);
+
+			if(!isStatic)
+				il.GetClass(klass);
+
 			il.Emit(OpCodes.Callvirt, property.GetGetMethod());
 			il.Emit(OpCodes.Ret);
 
-			Type getterFunc = typeof(Func<,>);
-			Type genericDelegate = getterFunc.MakeGenericType(typeof(IntPtr), property.PropertyType);
+			Type getterFunc = isStatic ? typeof(Func<>) : typeof(Func<,>);
+
+			Type genericDelegate;
+			if(isStatic)
+				genericDelegate = getterFunc.MakeGenericType(property.PropertyType);
+			else
+				genericDelegate = getterFunc.MakeGenericType(typeof(IntPtr), property.PropertyType);
 
 			return propertyGetter.CreateDelegate(genericDelegate);
 		}
 
 		private Delegate GeneratePropertySetter(Type klass, PropertyInfo property)
 		{
+			bool isStatic = property.GetGetMethod().IsStatic;
+
 			DynamicMethod propertySetter = new DynamicMethod(
-				klass.Name + property.Name + "Setter",
+				"TCC" + klass.Name + property.Name + "Setter",
 				typeof(void),
-				new Type[]{ typeof(IntPtr), property.PropertyType });
+				isStatic ? new Type[] { property.PropertyType } : new Type[]{ typeof(IntPtr), property.PropertyType });
 
 			ILGenerator il = propertySetter.GetILGenerator();
-			il.DeclareLocal(typeof(GCHandle));
-			il.Emit(OpCodes.Ldarg_0);
-			il.Emit(OpCodes.Call, typeof(GCHandle).GetMethod("FromIntPtr"));
-			il.Emit(OpCodes.Stloc_0);
-			il.Emit(OpCodes.Ldloca_S, 0);
-			il.Emit(OpCodes.Call, typeof(GCHandle).GetMethod("get_Target"));
-			if(klass.IsValueType)
-				il.Emit(OpCodes.Unbox, klass);
-			il.Emit(OpCodes.Ldarg_1);
+
+			if(!isStatic)
+			{
+				il.GetClass(klass);
+				il.Emit(OpCodes.Ldarg_1);
+			}
+			else
+				il.Emit(OpCodes.Ldarg_0);
+
 			il.Emit(OpCodes.Callvirt, property.GetSetMethod());
 			il.Emit(OpCodes.Ret);
 
-			Type setterFunc = typeof(Action<,>);
-			Type genericDelegate = setterFunc.MakeGenericType(typeof(IntPtr), property.PropertyType);
+			Type setterFunc = isStatic ? typeof(Action<>) : typeof(Action<,>);
+			Type genericDelegate;
+			if(isStatic)
+				genericDelegate = setterFunc.MakeGenericType(property.PropertyType);
+			else
+				genericDelegate = setterFunc.MakeGenericType(typeof(IntPtr), property.PropertyType);
 
 			return propertySetter.CreateDelegate(genericDelegate);
 		}
 
-		private Delegate GenerateGCFree(Type klass)
+		private Delegate GenerateGCFree()
 		{
-			DynamicMethod klassFree = new DynamicMethod(
-				klass.Name + "GCFree",
+			DynamicMethod gcFree = new DynamicMethod(
+				"TCCGCFree",
 				typeof(void),
 				new Type[]{ typeof(IntPtr) });
 
-			ILGenerator il = klassFree.GetILGenerator();
-			il.DeclareLocal(typeof(GCHandle));
-			il.Emit(OpCodes.Ldarg_0);
-			il.Emit(OpCodes.Call, typeof(GCHandle).GetMethod("FromIntPtr"));
-			il.Emit(OpCodes.Stloc_0);
-			il.Emit(OpCodes.Ldloca_S, 0);
+			ILGenerator il = gcFree.GetILGenerator();
+			il.GetGCHandle();
 			il.Emit(OpCodes.Call, typeof(GCHandle).GetMethod("Free"));
 			il.Emit(OpCodes.Ret);
 
 			Type freeFunc = typeof(Action<>);
 			Type genericDelegate = freeFunc.MakeGenericType(typeof(IntPtr));
 
-			return klassFree.CreateDelegate(genericDelegate);
+			return gcFree.CreateDelegate(genericDelegate);
 		}
 	}
 }
