@@ -6,7 +6,7 @@ namespace TCC.Test
 {
 	class MainClass
 	{
-		private struct TestClass
+		private class TestClass
 		{
 			public int Test { get; set; }
 			public string Test2 { get; set; }

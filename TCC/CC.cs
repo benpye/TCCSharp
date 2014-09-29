@@ -19,63 +19,64 @@ namespace TCC
 
 		private static class Native
 		{
-			[DllImport("libtcc.dll")]
+			[DllImport("libtcc.dll", CallingConvention = CallingConvention.Cdecl)]
 			public static extern IntPtr tcc_new();
 
-			[DllImport("libtcc.dll")]
+			[DllImport("libtcc.dll", CallingConvention = CallingConvention.Cdecl)]
 			public static extern void tcc_delete(IntPtr state);
 
-			[DllImport("libtcc.dll")]
+			[DllImport("libtcc.dll", CallingConvention = CallingConvention.Cdecl)]
 			public static extern void tcc_set_lib_path(IntPtr state, string path);
 
+			[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 			public delegate void NativeErrorDelegate(IntPtr opaque, string msg);
 
-			[DllImport("libtcc.dll")]
+			[DllImport("libtcc.dll", CallingConvention = CallingConvention.Cdecl)]
 			public static extern void tcc_set_error_func(IntPtr state, IntPtr error_opaque, NativeErrorDelegate error_func);
 
-			[DllImport("libtcc.dll")]
+			[DllImport("libtcc.dll", CallingConvention = CallingConvention.Cdecl)]
 			public static extern int tcc_set_options(IntPtr state, string str);
 
-			[DllImport("libtcc.dll")]
+			[DllImport("libtcc.dll", CallingConvention = CallingConvention.Cdecl)]
 			public static extern int tcc_add_include_path(IntPtr state, string pathname);
 
-			[DllImport("libtcc.dll")]
+			[DllImport("libtcc.dll", CallingConvention = CallingConvention.Cdecl)]
 			public static extern int tcc_add_sysinclude_path(IntPtr state, string pathname);
 
-			[DllImport("libtcc.dll")]
+			[DllImport("libtcc.dll", CallingConvention = CallingConvention.Cdecl)]
 			public static extern void tcc_define_symbol(IntPtr state, string sym, string value);
 
-			[DllImport("libtcc.dll")]
+			[DllImport("libtcc.dll", CallingConvention = CallingConvention.Cdecl)]
 			public static extern void tcc_undefine_symbol(IntPtr state, string sym);
 
-			[DllImport("libtcc.dll")]
+			[DllImport("libtcc.dll", CallingConvention = CallingConvention.Cdecl)]
 			public static extern int tcc_add_file(IntPtr state, string filename);
 
-			[DllImport("libtcc.dll")]
+			[DllImport("libtcc.dll", CallingConvention = CallingConvention.Cdecl)]
 			public static extern int tcc_compile_string(IntPtr state, string buf);
 
-			[DllImport("libtcc.dll")]
+			[DllImport("libtcc.dll", CallingConvention = CallingConvention.Cdecl)]
 			public static extern int tcc_set_output_type(IntPtr state, OutputType output_type);
 
-			[DllImport("libtcc.dll")]
+			[DllImport("libtcc.dll", CallingConvention = CallingConvention.Cdecl)]
 			public static extern int tcc_add_library_path(IntPtr state, string pathname);
 
-			[DllImport("libtcc.dll")]
+			[DllImport("libtcc.dll", CallingConvention = CallingConvention.Cdecl)]
 			public static extern int tcc_add_library(IntPtr state, string libraryname);
 
-			[DllImport("libtcc.dll")]
+			[DllImport("libtcc.dll", CallingConvention = CallingConvention.Cdecl)]
 			public static extern int tcc_add_symbol(IntPtr state, string name, Delegate val);
 
-			[DllImport("libtcc.dll")]
+			[DllImport("libtcc.dll", CallingConvention = CallingConvention.Cdecl)]
 			public static extern int tcc_output_file(IntPtr state, string filename);
 
-			[DllImport("libtcc.dll")]
+			[DllImport("libtcc.dll", CallingConvention = CallingConvention.Cdecl)]
 			public static extern int tcc_run(IntPtr state, int argc, string[] argv);
 
-			[DllImport("libtcc.dll")]
+			[DllImport("libtcc.dll", CallingConvention = CallingConvention.Cdecl)]
 			public static extern int tcc_relocate(IntPtr state, IntPtr ptr);
 
-			[DllImport("libtcc.dll")]
+			[DllImport("libtcc.dll", CallingConvention = CallingConvention.Cdecl)]
 			public static extern IntPtr tcc_get_symbol(IntPtr state, string name);
 		}
 
@@ -155,7 +156,7 @@ namespace TCC
 
 		public int AddSymbol(string name, Delegate method)
 		{
-			return Native.tcc_add_symbol(s, name, method);
+			return Native.tcc_add_symbol(s, name, DelegateWrapper.WrapDelegate(method));
 		}
 
 		public int OutputFile(string filename)
