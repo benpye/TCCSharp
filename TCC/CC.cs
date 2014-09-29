@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Reflection.Emit;
 using System.Runtime.InteropServices;
 
 namespace TCC
@@ -152,6 +153,11 @@ namespace TCC
 		public int AddLibrary(string library)
 		{
 			return Native.tcc_add_library(s, library);
+		}
+
+		public int AddSymbolDynamic(string name, Delegate method)
+		{
+			return Native.tcc_add_symbol(s, name, method);
 		}
 
 		public int AddSymbol(string name, Delegate method)

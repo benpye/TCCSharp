@@ -18,6 +18,9 @@ namespace TCC.Test
 			public static int Test { get; set; }
 		}
 
+		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+		public delegate void TestDelegate(string msg);
+
 		public static void Main(string[] args)
 		{
 			CC compiler = new CC();
@@ -29,6 +32,7 @@ namespace TCC.Test
 			TestClass.TestStatic = "Static!";
 
 			compiler.SetLibPath(AppDomain.CurrentDomain.BaseDirectory);
+			compiler.SetOutputType(CC.OutputType.Memory);
 
 			bind.BindClass(typeof(TestClass));
 			bind.BindClass(typeof(TestStatic));
@@ -47,10 +51,13 @@ namespace TCC.Test
 				Console.WriteLine(x);
 			}));
 
+			TestDelegate xa = new TestDelegate(((string msg) => {Console.WriteLine(msg);}));
+
 			compiler.CompileString(@"
 int main()
 {
 	void *t = (void *)GetTestClass();
+	Print(""Hello world"");
 	PrintInt(testclass_get_test(t));
 	Print(testclass_get_test2(t));
 	testclass_set_test2(t, ""testing"");
