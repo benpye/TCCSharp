@@ -7,6 +7,9 @@
 *.resources
 test-results/
 
+#vs
+*.suo
+
 Debug/
 Release/
 

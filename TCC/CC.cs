@@ -81,8 +81,6 @@ namespace TCC
 			public static extern IntPtr tcc_get_symbol(IntPtr state, string name);
 		}
 
-		public delegate void ErrorDelegate(string message);
-
 		private IntPtr s;
 
 		public CC()
@@ -100,7 +98,7 @@ namespace TCC
 			Native.tcc_set_lib_path(s, path);
 		}
 
-		public void SetErrorFunction(ErrorDelegate function)
+		public void SetErrorFunction(Action<string> function)
 		{
 			Native.tcc_set_error_func(s, IntPtr.Zero, ((IntPtr opaque, string msg) => function(msg)));
 		}
@@ -155,14 +153,19 @@ namespace TCC
 			return Native.tcc_add_library(s, library);
 		}
 
-		public int AddSymbolNative(string name, Delegate method)
-		{
-			return Native.tcc_add_symbol(s, name, method);
-		}
-
 		public int AddSymbol(string name, Delegate method)
 		{
+			// We normally wrap delegates as a usability improvement, without doing this
+			// we cannot allow for generic delegates (Task, Action), nor can we ensure Cdecl
 			return Native.tcc_add_symbol(s, name, DelegateWrapper.WrapDelegate(method));
+		}
+
+		public int AddSymbolNative(string name, Delegate method)
+		{
+			// When using DynamicMethod we are able to use the correct Delegate type first
+			// time, this may also be useful if performance is important, though TCC is likely
+			// never going to be super high performance
+			return Native.tcc_add_symbol(s, name, method);
 		}
 
 		public int OutputFile(string filename)

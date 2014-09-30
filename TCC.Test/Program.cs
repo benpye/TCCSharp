@@ -6,11 +6,12 @@ namespace TCC.Test
 {
 	class MainClass
 	{
-		public class TestClass
+		public struct TestClass
 		{
 			public int Test { get; set; }
 			public string Test2 { get; set; }
 			public static string TestStatic { get; set; }
+			public string TestField;
 		}
 
 		/*public class TestTClass : TestClass
@@ -18,17 +19,17 @@ namespace TCC.Test
 			public static string Test2Static { get; set; }
 		}*/
 
-		public static class TestStatic
+		public class TestClass2
 		{
-			public static int Test { get; set; }
+			public int Test { get; set; }
 		}
 
 		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 		public delegate void TestDelegate(string msg);
 
-		public static void SetterTest(string arg)
+		public static int GetterTest(IntPtr arg)
 		{
-			TestClass.TestStatic = arg;
+			return ((TestClass)GCHandle.FromIntPtr(arg).Target).Test;
 		}
 
 		public static void Main(string[] args)
@@ -39,6 +40,7 @@ namespace TCC.Test
 			TestClass test = new TestClass();
 			test.Test = 42;
 			test.Test2 = "hello!";
+			test.TestField = "Hi!";
 			TestClass.TestStatic = "Static!";
 
 			compiler.SetLibPath(AppDomain.CurrentDomain.BaseDirectory);
@@ -73,7 +75,7 @@ namespace TCC.Test
 
 			//TestDelegate xa = new TestDelegate(((string msg) => {Console.WriteLine(msg);}));
 
-			compiler.SetErrorFunction(new CC.ErrorDelegate((string x) => { Console.WriteLine(x); }));
+			compiler.SetErrorFunction(Console.WriteLine);
 
 			compiler.CompileString(@"
 int main()
@@ -87,6 +89,9 @@ int main()
 	testclass_set_test2(t, ""testing"");
 	Print(testclass_get_test2(t));
 	testclass_set_teststatic(""hello static world"");
+	Print(testclass_get_testfield(t));
+	testclass_set_testfield(t, ""New!"");
+	Print(testclass_get_testfield(t));
 	Print(""Finished"");
 	gc_free(t);
 	Print(""Freed"");
@@ -94,6 +99,7 @@ int main()
 }
 ");
 			compiler.Run(0, new string[] { });
+
 		}
 	}
 }

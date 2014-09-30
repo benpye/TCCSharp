@@ -49,6 +49,78 @@ namespace TCC
 				if (prop.GetSetMethod().IsPublic)
 					compiler.AddSymbolNative(klassName + "_set_" + propName, GeneratePropertySetter(klass, prop));
 			}
+
+			// Fields
+			var fields = klass.GetFields();
+			foreach (var field in fields)
+			{
+				var fieldName = field.Name.ToLower();
+
+				if (field.IsPublic)
+				{
+					compiler.AddSymbolNative(klassName + "_get_" + fieldName, GenerateFieldGetter(klass, field));
+					compiler.AddSymbolNative(klassName + "_set_" + fieldName, GenerateFieldSetter(klass, field));
+				}
+			}
+		}
+
+		public Delegate GenerateFieldGetter(Type klass, FieldInfo field)
+		{
+			bool isStatic = field.IsStatic;
+
+			Type[] parameterTypes = isStatic ? new Type[] { } : new Type[] { typeof(IntPtr) };
+			Type returnType = field.FieldType;
+
+			DynamicMethod fieldGetter = new DynamicMethod(
+				"TCC" + klass.Name + field.Name + "FieldGetter",
+				returnType,
+				parameterTypes, 
+				true);
+
+			ILGenerator il = fieldGetter.GetILGenerator();
+
+			if (!isStatic)
+				il.GetClass(klass);
+
+			il.Emit(OpCodes.Ldfld, field);
+
+			il.Emit(OpCodes.Ret);
+
+			Type getterFunc = DelegateWrapper.GenerateDelegateType(returnType, parameterTypes);
+
+			return fieldGetter.CreateDelegate(getterFunc);
+		}
+
+		public Delegate GenerateFieldSetter(Type klass, FieldInfo field)
+		{
+			bool isStatic = field.IsStatic;
+
+			Type[] parameterTypes = isStatic ? new Type[] { field.FieldType } : new Type[] { typeof(IntPtr), field.FieldType };
+			Type returnType = typeof(void);
+
+			DynamicMethod fieldSetter = new DynamicMethod(
+				"TCC" + klass.Name + field.Name + "FieldSetter",
+				returnType,
+				parameterTypes, 
+				true);
+
+			ILGenerator il = fieldSetter.GetILGenerator();
+
+			if (!isStatic)
+			{
+				il.GetClass(klass);
+				il.Emit(OpCodes.Ldarg_1);
+			}
+			else
+				il.Emit(OpCodes.Ldarg_0);
+
+			il.Emit(OpCodes.Stfld, field);
+
+			il.Emit(OpCodes.Ret);
+
+			Type setterFunc = DelegateWrapper.GenerateDelegateType(returnType, parameterTypes);
+
+			return fieldSetter.CreateDelegate(setterFunc);
 		}
 
 		public Delegate GeneratePropertyGetter(Type klass, PropertyInfo property)
@@ -59,7 +131,7 @@ namespace TCC
 			Type returnType = property.PropertyType;
 
 			DynamicMethod propertyGetter = new DynamicMethod(
-				"TCC" + klass.Name + property.Name + "Getter",
+				"TCC" + klass.Name + property.Name + "PropertyGetter",
 				returnType,
 				parameterTypes, 
 				true);
@@ -89,7 +161,7 @@ namespace TCC
 			Type returnType = typeof(void);
 
 			DynamicMethod propertySetter = new DynamicMethod(
-				"TCC" + klass.Name + property.Name + "Setter",
+				"TCC" + klass.Name + property.Name + "PropertySetter",
 				returnType,
 				parameterTypes,
 				true);

@@ -21,6 +21,12 @@ namespace TCC
 			il.GetGCHandle();
 			il.Emit(OpCodes.Call, typeof(GCHandle).GetProperty("Target").GetGetMethod());
 			il.Emit(OpCodes.Unbox_Any, klass);
+			if (klass.IsValueType)
+			{
+				il.DeclareLocal(klass);
+				il.Emit(OpCodes.Stloc_1);
+				il.Emit(OpCodes.Ldloca_S, 1);
+			}
 		}
 	}
 }
