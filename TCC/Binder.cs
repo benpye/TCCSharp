@@ -3,6 +3,7 @@ using System.Linq;
 using System.Text;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
 namespace TCC
@@ -13,6 +14,7 @@ namespace TCC
 
 		// Array of types that we can marshal directly, otherwise we use handles
 		private Type[] simpleTypes = {
+			typeof(void),
 			typeof(IntPtr),
 			typeof(Byte),
 			typeof(Int16),
@@ -63,6 +65,168 @@ namespace TCC
 					compiler.AddSymbolNative(klassName + "_set_" + fieldName, GenerateFieldSetter(klass, field));
 				}
 			}
+
+			// Methods
+			var methods = klass.GetMethods();
+			foreach (var method in methods)
+			{
+				var methodName = method.Name.ToLower();
+
+				if (method.IsPublic && !method.IsSpecialName)
+				{
+					compiler.AddSymbolNative(klassName + "_" + methodName, GenerateMethod(klass, method));
+				}
+			}
+
+			// Constructors
+			var constructors = klass.GetConstructors();
+			foreach (var constructor in constructors)
+			{
+				var constructorParameters = constructor.GetParameters();
+				string constructorName = "";
+
+				foreach (var p in constructorParameters)
+					constructorName += p.ParameterType.Name.ToLower();
+
+				if (constructor.IsPublic)
+				{
+					var symbolName = klassName + "_new";
+					if (constructorParameters.Length > 0)
+						symbolName += "_" + constructorName;
+					compiler.AddSymbolNative(symbolName, GenerateConstructor(klass, constructor));
+				}
+			}
+		}
+
+		public Delegate GenerateConstructor(Type klass, ConstructorInfo method)
+		{
+			bool isStatic = method.IsStatic;
+			bool isMarshallableReturn = IsMarshallableType(klass);
+
+			var parameterInfos = method.GetParameters();
+			List<Type> parameterTypesList = new List<Type>();
+			List<Tuple<Type, bool>> marshalTypes = new List<Tuple<Type, bool>>();
+
+			foreach (var p in parameterInfos)
+			{
+				if (IsMarshallableType(p.ParameterType))
+				{
+					parameterTypesList.Add(p.ParameterType);
+					marshalTypes.Add(new Tuple<Type, bool>(p.ParameterType, false));
+				}
+				else
+				{
+					parameterTypesList.Add(typeof(IntPtr));
+					marshalTypes.Add(new Tuple<Type, bool>(p.ParameterType, true));
+				}
+			}
+
+			Type returnType = isMarshallableReturn ? klass : typeof(IntPtr);
+
+			var parameterTypes = parameterTypesList.ToArray();
+
+			DynamicMethod methodMethod = new DynamicMethod(
+				"TCC" + klass.Name + method.Name + "Method",
+				returnType,
+				parameterTypes,
+				true);
+
+			ILGenerator il = methodMethod.GetILGenerator();
+
+			int argc = 0;
+
+			foreach (var t in marshalTypes)
+			{
+				il.Emit(OpCodes.Ldarg, argc);
+				argc++;
+				if (t.Item2)
+				{
+					il.GetClass(t.Item1);
+				}
+			}
+
+			il.Emit(OpCodes.Newobj, method);
+
+			if (!isMarshallableReturn)
+				il.WrapClass(klass);
+
+			il.Emit(OpCodes.Ret);
+
+			Type methodFunc = DelegateWrapper.GenerateDelegateType(returnType, parameterTypes);
+
+			return methodMethod.CreateDelegate(methodFunc);
+		}
+
+		public Delegate GenerateMethod(Type klass, MethodInfo method)
+		{
+			bool isStatic = method.IsStatic;
+			bool isMarshallableReturn = IsMarshallableType(method.ReturnType);
+
+			var parameterInfos = method.GetParameters();
+			List<Type> parameterTypesList = new List<Type>();
+			List<Tuple<Type, bool>> marshalTypes = new List<Tuple<Type, bool>>();
+
+			if (!isStatic)
+				parameterTypesList.Add(typeof(IntPtr));
+
+			foreach (var p in parameterInfos)
+			{
+				if (IsMarshallableType(p.ParameterType))
+				{
+					parameterTypesList.Add(p.ParameterType);
+					marshalTypes.Add(new Tuple<Type, bool>(p.ParameterType, false));
+				}
+				else
+				{
+					parameterTypesList.Add(typeof(IntPtr));
+					marshalTypes.Add(new Tuple<Type, bool>(p.ParameterType, true));
+				}
+			}
+
+			Type returnType = isMarshallableReturn ? method.ReturnType : typeof(IntPtr);
+
+			var parameterTypes = parameterTypesList.ToArray();
+
+			DynamicMethod methodMethod = new DynamicMethod(
+				"TCC" + klass.Name + method.Name + "Method",
+				returnType,
+				parameterTypes,
+				true);
+
+			ILGenerator il = methodMethod.GetILGenerator();
+
+			int argc = 0;
+
+			if (!isStatic)
+			{
+				il.Emit(OpCodes.Ldarg_0);
+				il.GetClass(klass);
+				argc++;
+			}
+
+			foreach (var t in marshalTypes)
+			{
+				il.Emit(OpCodes.Ldarg, argc);
+				argc++;
+				if (t.Item2)
+				{
+					il.GetClass(t.Item1);
+				}
+			}
+
+			if (isStatic || klass.IsValueType)
+				il.Emit(OpCodes.Call, method);
+			else
+				il.Emit(OpCodes.Callvirt, method);
+
+			if (!isMarshallableReturn)
+				il.WrapClass(method.ReturnType);
+
+			il.Emit(OpCodes.Ret);
+
+			Type methodFunc = DelegateWrapper.GenerateDelegateType(returnType, parameterTypes);
+
+			return methodMethod.CreateDelegate(methodFunc);
 		}
 
 		public Delegate GenerateFieldGetter(Type klass, FieldInfo field)
@@ -76,7 +240,7 @@ namespace TCC
 			DynamicMethod fieldGetter = new DynamicMethod(
 				"TCC" + klass.Name + field.Name + "FieldGetter",
 				returnType,
-				parameterTypes, 
+				parameterTypes,
 				true);
 
 			ILGenerator il = fieldGetter.GetILGenerator();
@@ -87,7 +251,10 @@ namespace TCC
 				il.GetClass(klass);
 			}
 
-			il.Emit(OpCodes.Ldfld, field);
+			if (!isStatic)
+				il.Emit(OpCodes.Ldfld, field);
+			else
+				il.Emit(OpCodes.Ldsfld, field);
 
 			if (!isMarshallable)
 				il.WrapClass(field.FieldType);
@@ -111,7 +278,7 @@ namespace TCC
 			DynamicMethod fieldSetter = new DynamicMethod(
 				"TCC" + klass.Name + field.Name + "FieldSetter",
 				returnType,
-				parameterTypes, 
+				parameterTypes,
 				true);
 
 			ILGenerator il = fieldSetter.GetILGenerator();
@@ -126,7 +293,10 @@ namespace TCC
 			if (!isMarshallable)
 				il.GetClass(field.FieldType);
 
-			il.Emit(OpCodes.Stfld, field);
+			if (!isStatic)
+				il.Emit(OpCodes.Stfld, field);
+			else
+				il.Emit(OpCodes.Stsfld, field);
 
 			il.Emit(OpCodes.Ret);
 
@@ -146,7 +316,7 @@ namespace TCC
 			DynamicMethod propertyGetter = new DynamicMethod(
 				"TCC" + klass.Name + property.Name + "PropertyGetter",
 				returnType,
-				parameterTypes, 
+				parameterTypes,
 				true);
 
 			ILGenerator il = propertyGetter.GetILGenerator();
@@ -199,7 +369,7 @@ namespace TCC
 			if (!isMarshallable)
 				il.GetClass(property.PropertyType);
 
-			if(isStatic || klass.IsValueType)
+			if (isStatic || klass.IsValueType)
 				il.Emit(OpCodes.Call, property.GetSetMethod());
 			else
 				il.Emit(OpCodes.Callvirt, property.GetSetMethod());
@@ -235,7 +405,7 @@ namespace TCC
 
 		private bool IsMarshallableType(Type klass)
 		{
-			return simpleTypes.Contains(klass);
+			return simpleTypes.Contains(klass.GetElementType()) || simpleTypes.Contains(klass) || klass.IsEnum;
 		}
 	}
 }
