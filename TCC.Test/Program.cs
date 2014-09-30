@@ -6,12 +6,13 @@ namespace TCC.Test
 {
 	class MainClass
 	{
-		public struct TestClass
+		public class TestClass
 		{
 			public int Test { get; set; }
 			public string Test2 { get; set; }
 			public static string TestStatic { get; set; }
 			public string TestField;
+			public TestClass2 TestClassTwo { get; set; }
 		}
 
 		/*public class TestTClass : TestClass
@@ -30,6 +31,21 @@ namespace TCC.Test
 		public static int GetterTest(IntPtr arg)
 		{
 			return ((TestClass)GCHandle.FromIntPtr(arg).Target).Test;
+		}
+
+		public static void SetterTest(IntPtr arg, int test)
+		{
+			((TestClass)GCHandle.FromIntPtr(arg).Target).Test = test;
+		}
+
+		public static IntPtr GetHandle(IntPtr o)
+		{
+			return GCHandle.ToIntPtr(GCHandle.Alloc(((TestClass)GCHandle.FromIntPtr(o).Target).TestClassTwo));
+		}
+
+		public static void SetHandle(IntPtr o, IntPtr b)
+		{
+			((TestClass)GCHandle.FromIntPtr(o).Target).TestClassTwo = (TestClass2)(GCHandle.FromIntPtr(b).Target);
 		}
 
 		public static void Main(string[] args)
@@ -67,13 +83,8 @@ namespace TCC.Test
 				Console.WriteLine(x);
 			}));
 
-			Delegate testd = DelegateWrapper.WrapDelegate((Action<string>)((string x) => { Console.WriteLine(x); }));
-			testd.DynamicInvoke("Test!");
-
-			//Delegate test2 = bind.GeneratePropertyGetter(typeof(TestClass), typeof(TestClass).GetProperty("Test"));
-			//int ai = (int)test2.DynamicInvoke(GCHandle.ToIntPtr(gch));
-
-			//TestDelegate xa = new TestDelegate(((string msg) => {Console.WriteLine(msg);}));
+			SetterTest(GCHandle.ToIntPtr(gch), 50);
+			Console.WriteLine(GetterTest(GCHandle.ToIntPtr(gch)));
 
 			compiler.SetErrorFunction(Console.WriteLine);
 

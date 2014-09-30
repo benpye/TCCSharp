@@ -9,11 +9,10 @@ namespace TCC
 	{
 		public static void GetGCHandle(this ILGenerator il)
 		{
-			il.DeclareLocal(typeof(GCHandle));
-			il.Emit(OpCodes.Ldarg_0);
+			var lb = il.DeclareLocal(typeof(GCHandle));
 			il.Emit(OpCodes.Call, typeof(GCHandle).GetMethod("FromIntPtr"));
-			il.Emit(OpCodes.Stloc_0);
-			il.Emit(OpCodes.Ldloca_S, 0);
+			il.Emit(OpCodes.Stloc, lb.LocalIndex);
+			il.Emit(OpCodes.Ldloca_S, lb.LocalIndex);
 		}
 
 		public static void GetClass(this ILGenerator il, Type klass)
@@ -23,10 +22,18 @@ namespace TCC
 			il.Emit(OpCodes.Unbox_Any, klass);
 			if (klass.IsValueType)
 			{
-				il.DeclareLocal(klass);
-				il.Emit(OpCodes.Stloc_1);
-				il.Emit(OpCodes.Ldloca_S, 1);
+				var lb = il.DeclareLocal(klass);
+				il.Emit(OpCodes.Stloc, lb.LocalIndex);
+				il.Emit(OpCodes.Ldloca_S, lb.LocalIndex);
 			}
+		}
+
+		public static void WrapClass(this ILGenerator il, Type klass)
+		{
+			if (klass.IsValueType)
+				il.Emit(OpCodes.Box, klass);
+			il.Emit(OpCodes.Call, typeof(GCHandle).GetMethod("Alloc", new Type[]{ typeof(object) }));
+			il.Emit(OpCodes.Call, typeof(GCHandle).GetMethod("ToIntPtr"));
 		}
 	}
 }

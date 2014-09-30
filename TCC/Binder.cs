@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Text;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -67,9 +68,10 @@ namespace TCC
 		public Delegate GenerateFieldGetter(Type klass, FieldInfo field)
 		{
 			bool isStatic = field.IsStatic;
+			bool isMarshallable = IsMarshallableType(field.FieldType);
 
 			Type[] parameterTypes = isStatic ? new Type[] { } : new Type[] { typeof(IntPtr) };
-			Type returnType = field.FieldType;
+			Type returnType = isMarshallable ? field.FieldType : typeof(IntPtr);
 
 			DynamicMethod fieldGetter = new DynamicMethod(
 				"TCC" + klass.Name + field.Name + "FieldGetter",
@@ -80,9 +82,15 @@ namespace TCC
 			ILGenerator il = fieldGetter.GetILGenerator();
 
 			if (!isStatic)
+			{
+				il.Emit(OpCodes.Ldarg_0);
 				il.GetClass(klass);
+			}
 
 			il.Emit(OpCodes.Ldfld, field);
+
+			if (!isMarshallable)
+				il.WrapClass(field.FieldType);
 
 			il.Emit(OpCodes.Ret);
 
@@ -94,8 +102,10 @@ namespace TCC
 		public Delegate GenerateFieldSetter(Type klass, FieldInfo field)
 		{
 			bool isStatic = field.IsStatic;
+			bool isMarshallable = IsMarshallableType(field.FieldType);
 
-			Type[] parameterTypes = isStatic ? new Type[] { field.FieldType } : new Type[] { typeof(IntPtr), field.FieldType };
+			Type inType = isMarshallable ? field.FieldType : typeof(IntPtr);
+			Type[] parameterTypes = isStatic ? new Type[] { inType } : new Type[] { typeof(IntPtr), inType };
 			Type returnType = typeof(void);
 
 			DynamicMethod fieldSetter = new DynamicMethod(
@@ -106,13 +116,15 @@ namespace TCC
 
 			ILGenerator il = fieldSetter.GetILGenerator();
 
+			il.Emit(OpCodes.Ldarg_0);
 			if (!isStatic)
 			{
 				il.GetClass(klass);
 				il.Emit(OpCodes.Ldarg_1);
 			}
-			else
-				il.Emit(OpCodes.Ldarg_0);
+
+			if (!isMarshallable)
+				il.GetClass(field.FieldType);
 
 			il.Emit(OpCodes.Stfld, field);
 
@@ -126,9 +138,10 @@ namespace TCC
 		public Delegate GeneratePropertyGetter(Type klass, PropertyInfo property)
 		{
 			bool isStatic = property.GetGetMethod().IsStatic;
+			bool isMarshallable = IsMarshallableType(property.PropertyType);
 
 			Type[] parameterTypes = isStatic ? new Type[] { } : new Type[] { typeof(IntPtr) };
-			Type returnType = property.PropertyType;
+			Type returnType = isMarshallable ? property.PropertyType : typeof(IntPtr);
 
 			DynamicMethod propertyGetter = new DynamicMethod(
 				"TCC" + klass.Name + property.Name + "PropertyGetter",
@@ -139,12 +152,18 @@ namespace TCC
 			ILGenerator il = propertyGetter.GetILGenerator();
 
 			if (!isStatic)
+			{
+				il.Emit(OpCodes.Ldarg_0);
 				il.GetClass(klass);
+			}
 
 			if (isStatic || klass.IsValueType)
 				il.Emit(OpCodes.Call, property.GetGetMethod());
 			else
 				il.Emit(OpCodes.Callvirt, property.GetGetMethod());
+
+			if (!isMarshallable)
+				il.WrapClass(property.PropertyType);
 
 			il.Emit(OpCodes.Ret);
 
@@ -156,8 +175,10 @@ namespace TCC
 		private Delegate GeneratePropertySetter(Type klass, PropertyInfo property)
 		{
 			bool isStatic = property.GetSetMethod().IsStatic;
+			bool isMarshallable = IsMarshallableType(property.PropertyType);
 
-			Type[] parameterTypes = isStatic ? new Type[] { property.PropertyType } : new Type[] { typeof(IntPtr), property.PropertyType };
+			Type inType = isMarshallable ? property.PropertyType : typeof(IntPtr);
+			Type[] parameterTypes = isStatic ? new Type[] { inType } : new Type[] { typeof(IntPtr), inType };
 			Type returnType = typeof(void);
 
 			DynamicMethod propertySetter = new DynamicMethod(
@@ -168,13 +189,15 @@ namespace TCC
 
 			ILGenerator il = propertySetter.GetILGenerator();
 
+			il.Emit(OpCodes.Ldarg_0);
 			if (!isStatic)
 			{
 				il.GetClass(klass);
 				il.Emit(OpCodes.Ldarg_1);
 			}
-			else
-				il.Emit(OpCodes.Ldarg_0);
+
+			if (!isMarshallable)
+				il.GetClass(property.PropertyType);
 
 			if(isStatic || klass.IsValueType)
 				il.Emit(OpCodes.Call, property.GetSetMethod());
@@ -200,6 +223,7 @@ namespace TCC
 				true);
 
 			ILGenerator il = gcFree.GetILGenerator();
+			il.Emit(OpCodes.Ldarg_0);
 			il.GetGCHandle();
 			il.Emit(OpCodes.Call, typeof(GCHandle).GetMethod("Free"));
 			il.Emit(OpCodes.Ret);
@@ -207,6 +231,11 @@ namespace TCC
 			Type freeFunc = DelegateWrapper.GenerateDelegateType(returnType, parameterTypes);
 
 			return gcFree.CreateDelegate(freeFunc);
+		}
+
+		private bool IsMarshallableType(Type klass)
+		{
+			return simpleTypes.Contains(klass);
 		}
 	}
 }
