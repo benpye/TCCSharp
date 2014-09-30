@@ -34,7 +34,7 @@ namespace TCC
 			invoke.SetImplementationFlags(MethodImplAttributes.Runtime | MethodImplAttributes.Managed);
 
 			ConstructorInfo attributeCi = typeof(UnmanagedFunctionPointerAttribute).GetConstructor(new Type[] { typeof(CallingConvention) });
-			CustomAttributeBuilder cab = new CustomAttributeBuilder(attributeCi, new object[]{ CallingConvention.Cdecl });
+			CustomAttributeBuilder cab = new CustomAttributeBuilder(attributeCi, new object[] { CallingConvention.Cdecl });
 			tb.SetCustomAttribute(cab);
 
 			return tb.CreateType();
@@ -48,7 +48,7 @@ namespace TCC
 			ParameterInfo[] invokeParameters = invokeInfo.GetParameters();
 			Type[] invokeParameterTypes = new Type[invokeParameters.Length];
 
-			for(int i = 0; i < invokeParameters.Length; i++)
+			for (int i = 0; i < invokeParameters.Length; i++)
 			{
 				invokeParameterTypes[i] = invokeParameters[i].ParameterType;
 			}

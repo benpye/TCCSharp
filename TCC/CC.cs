@@ -155,7 +155,7 @@ namespace TCC
 			return Native.tcc_add_library(s, library);
 		}
 
-		public int AddSymbolDynamic(string name, Delegate method)
+		public int AddSymbolNative(string name, Delegate method)
 		{
 			return Native.tcc_add_symbol(s, name, method);
 		}
@@ -183,7 +183,7 @@ namespace TCC
 		public T GetSymbol<T>(string name)
 		{
 			IntPtr funcPtr = Native.tcc_get_symbol(s, name);
-			if(funcPtr == IntPtr.Zero)
+			if (funcPtr == IntPtr.Zero)
 				throw new NullReferenceException();
 
 			return (T)(object)Marshal.GetDelegateForFunctionPointer(funcPtr, typeof(T));

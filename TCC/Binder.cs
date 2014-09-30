@@ -30,7 +30,7 @@ namespace TCC
 			compiler = tcc;
 
 			// Generic GC free
-			compiler.AddSymbolDynamic("gc_free", GenerateGCFree());
+			compiler.AddSymbolNative("gc_free", GenerateGCFree());
 		}
 
 		public void BindClass(Type klass)
@@ -39,19 +39,19 @@ namespace TCC
 
 			// Properties
 			var props = klass.GetProperties();
-			foreach(var prop in props)
+			foreach (var prop in props)
 			{
 				var propName = prop.Name.ToLower();
 
-				if(prop.GetGetMethod().IsPublic)
-					compiler.AddSymbolDynamic(klassName + "_get_" + propName, GeneratePropertyGetter(klass, prop));
+				if (prop.GetGetMethod().IsPublic)
+					compiler.AddSymbolNative(klassName + "_get_" + propName, GeneratePropertyGetter(klass, prop));
 
-				if(prop.GetSetMethod().IsPublic)
-					compiler.AddSymbolDynamic(klassName + "_set_" + propName, GeneratePropertySetter(klass, prop));
+				if (prop.GetSetMethod().IsPublic)
+					compiler.AddSymbolNative(klassName + "_set_" + propName, GeneratePropertySetter(klass, prop));
 			}
 		}
 
-		private Delegate GeneratePropertyGetter(Type klass, PropertyInfo property)
+		public Delegate GeneratePropertyGetter(Type klass, PropertyInfo property)
 		{
 			bool isStatic = property.GetGetMethod().IsStatic;
 
@@ -61,14 +61,19 @@ namespace TCC
 			DynamicMethod propertyGetter = new DynamicMethod(
 				"TCC" + klass.Name + property.Name + "Getter",
 				returnType,
-				parameterTypes);
+				parameterTypes, 
+				true);
 
 			ILGenerator il = propertyGetter.GetILGenerator();
 
-			if(!isStatic)
+			if (!isStatic)
 				il.GetClass(klass);
 
-			il.Emit(OpCodes.Callvirt, property.GetGetMethod());
+			if (isStatic || klass.IsValueType)
+				il.Emit(OpCodes.Call, property.GetGetMethod());
+			else
+				il.Emit(OpCodes.Callvirt, property.GetGetMethod());
+
 			il.Emit(OpCodes.Ret);
 
 			Type getterFunc = DelegateWrapper.GenerateDelegateType(returnType, parameterTypes);
@@ -78,7 +83,7 @@ namespace TCC
 
 		private Delegate GeneratePropertySetter(Type klass, PropertyInfo property)
 		{
-			bool isStatic = property.GetGetMethod().IsStatic;
+			bool isStatic = property.GetSetMethod().IsStatic;
 
 			Type[] parameterTypes = isStatic ? new Type[] { property.PropertyType } : new Type[] { typeof(IntPtr), property.PropertyType };
 			Type returnType = typeof(void);
@@ -86,11 +91,12 @@ namespace TCC
 			DynamicMethod propertySetter = new DynamicMethod(
 				"TCC" + klass.Name + property.Name + "Setter",
 				returnType,
-				parameterTypes);
+				parameterTypes,
+				true);
 
 			ILGenerator il = propertySetter.GetILGenerator();
 
-			if(!isStatic)
+			if (!isStatic)
 			{
 				il.GetClass(klass);
 				il.Emit(OpCodes.Ldarg_1);
@@ -98,7 +104,11 @@ namespace TCC
 			else
 				il.Emit(OpCodes.Ldarg_0);
 
-			il.Emit(OpCodes.Callvirt, property.GetSetMethod());
+			if(isStatic || klass.IsValueType)
+				il.Emit(OpCodes.Call, property.GetSetMethod());
+			else
+				il.Emit(OpCodes.Callvirt, property.GetSetMethod());
+
 			il.Emit(OpCodes.Ret);
 
 			Type setterFunc = DelegateWrapper.GenerateDelegateType(returnType, parameterTypes);
@@ -114,7 +124,8 @@ namespace TCC
 			DynamicMethod gcFree = new DynamicMethod(
 				"TCCGCFree",
 				returnType,
-				parameterTypes);
+				parameterTypes,
+				true);
 
 			ILGenerator il = gcFree.GetILGenerator();
 			il.GetGCHandle();
