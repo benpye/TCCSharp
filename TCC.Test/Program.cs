@@ -28,12 +28,13 @@ namespace TCC.Test
 				return new TestingClass();
 			}
 
-			[Name("newname")]
+			[CSymbol("{class:L}_newname")]
 			public static void WriteLine(string msg)
 			{
 				Console.WriteLine(msg);
 			}
 
+			[CSymbol("{class:L}_{mutator:L}_tesstring")]
 			public string TestString { get; set; }
 			public static string StaticProperty { get; set; }
 
@@ -59,15 +60,15 @@ namespace TCC.Test
 			compiler.CompileString(@"
 int main()
 {
-	void *inst = (void *)testingclass_new_string(""Different string"");
+	void *inst = (void *)testingclass_newstring(""Different string"");
 	testingclass_printfield(inst);
-	testingclass_set_teststring(inst, ""Another string"");
+	testingclass_set_tesstring(inst, ""Another string"");
 	testingclass_printfield(inst);
-	testingclass_newname(testingclass_get_teststring(inst));
+	testingclass_newname(testingclass_get_tesstring(inst));
 	gc_free(inst);
 	inst = (void *)testingclass_new();
 	testingclass_printfield(inst);
-	testingclass_set_teststring(inst, ""Another string"");
+	testingclass_set_tesstring(inst, ""Another string"");
 	testingclass_printfield(inst);
 	gc_free(inst);
 	testingclass_newname(testingclass_get_staticproperty());

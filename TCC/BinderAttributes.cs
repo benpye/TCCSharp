@@ -2,9 +2,9 @@
 
 namespace TCC
 {
-	public class NameAttribute : Attribute
+	public class CSymbolAttribute : Attribute
 	{
-		public NameAttribute(string nameOverride)
+		public CSymbolAttribute(string nameOverride)
 		{
 			this.nameOverride = nameOverride;
 		}

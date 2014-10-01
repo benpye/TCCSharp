@@ -36,6 +36,7 @@
     <Compile Include="ILHelper.cs" />
     <Compile Include="DelegateWrapper.cs" />
     <Compile Include="BinderAttributes.cs" />
+    <Compile Include="StringInjectExtension.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

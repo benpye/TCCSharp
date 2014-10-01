@@ -40,42 +40,84 @@ namespace TCC
 		{
 			foreach (var a in obj.GetCustomAttributes(true))
 			{
-				if (a is NameAttribute)
+				if (a is CSymbolAttribute)
 				{
-					return (a as NameAttribute).NameOverride;
+					return (a as CSymbolAttribute).NameOverride;
 				}
 			}
 
 			return defaultValue;
 		}
 
-		public void BindClass(Type klass, string prefix = "")
+		private string _constructorPattern = "{class:L}_new{args:L}";
+		public string ConstructorPattern
 		{
-			var klassName = prefix + GetNameFromAttributes(klass.Name.ToLower(), klass);
+			get { return _constructorPattern; }
+			set { _constructorPattern = value; }
+		}
+
+		private string _propertyPattern = "{class:L}_{mutator:L}_{property:L}";
+		public string PropertyPattern
+		{
+			get { return _propertyPattern; }
+			set { _propertyPattern = value; }
+		}
+
+
+		private string _fieldPattern = "{class:L}_{mutator:L}_{field:L}";
+		public string FieldPattern
+		{
+			get { return _fieldPattern; }
+			set { _fieldPattern = value; }
+		}
+
+
+		private string _methodPattern = "{class:L}_{method:L}";
+		public string MethodPattern
+		{
+			get { return _methodPattern; }
+			set { _methodPattern = value; }
+		}
+
+		public void BindClass(Type klass)
+		{
+			var klassName = GetNameFromAttributes(klass.Name, klass);
+
+			Dictionary<string, string> formatDictionary = new Dictionary<string, string>();
+			formatDictionary["class"] = klassName;
 
 			// Properties
 			var props = klass.GetProperties();
 			foreach (var prop in props)
 			{
-				var propName = GetNameFromAttributes(prop.Name.ToLower(), prop);
+				var pattern = GetNameFromAttributes(PropertyPattern, prop);
+
+				formatDictionary["property"] = prop.Name;
+				formatDictionary["mutator"]  = "get";
 
 				if (prop.GetGetMethod().IsPublic)
-					compiler.AddSymbolNative(klassName + "_get_" + propName, GenerateMethod(klass, prop.GetGetMethod()));
+					compiler.AddSymbolNative(pattern.Inject(formatDictionary), GenerateMethod(klass, prop.GetGetMethod()));
+
+				formatDictionary["mutator"]  = "set";
 
 				if (prop.GetSetMethod().IsPublic)
-					compiler.AddSymbolNative(klassName + "_set_" + propName, GenerateMethod(klass, prop.GetSetMethod()));
+					compiler.AddSymbolNative(pattern.Inject(formatDictionary), GenerateMethod(klass, prop.GetSetMethod()));
 			}
 
 			// Fields
 			var fields = klass.GetFields();
 			foreach (var field in fields)
 			{
-				var fieldName = GetNameFromAttributes(field.Name.ToLower(), field);
+				var pattern = GetNameFromAttributes(FieldPattern, field);
+
+				formatDictionary["field"] = field.Name;
 
 				if (field.IsPublic)
 				{
-					compiler.AddSymbolNative(klassName + "_get_" + fieldName, GenerateFieldGetter(klass, field));
-					compiler.AddSymbolNative(klassName + "_set_" + fieldName, GenerateFieldSetter(klass, field));
+					formatDictionary["mutator"]  = "get";
+					compiler.AddSymbolNative(pattern.Inject(formatDictionary), GenerateFieldGetter(klass, field));
+					formatDictionary["mutator"]  = "set";
+					compiler.AddSymbolNative(pattern.Inject(formatDictionary), GenerateFieldSetter(klass, field));
 				}
 			}
 
@@ -83,11 +125,13 @@ namespace TCC
 			var methods = klass.GetMethods();
 			foreach (var method in methods)
 			{
-				var methodName = GetNameFromAttributes(method.Name.ToLower(), method);
+				var pattern = GetNameFromAttributes(MethodPattern, method);
+
+				formatDictionary["method"] = method.Name;
 
 				if (method.IsPublic && !method.IsSpecialName)
 				{
-					compiler.AddSymbolNative(klassName + "_" + methodName, GenerateMethod(klass, method));
+					compiler.AddSymbolNative(pattern.Inject(formatDictionary), GenerateMethod(klass, method));
 				}
 			}
 
@@ -95,21 +139,19 @@ namespace TCC
 			var constructors = klass.GetConstructors();
 			foreach (var constructor in constructors)
 			{
+				var pattern = GetNameFromAttributes(ConstructorPattern, constructor);
+
 				var constructorParameters = constructor.GetParameters();
-				string constructorName = "";
+				string constructorArgs = "";
 
 				foreach (var p in constructorParameters)
-					constructorName += p.ParameterType.Name.ToLower();
+					constructorArgs += p.ParameterType.Name;
 
-				var symbolName = "new";
-				if (constructorParameters.Length > 0)
-					symbolName += "_" + constructorName;
-
-				symbolName = GetNameFromAttributes(symbolName, constructor);
+				formatDictionary["args"] = constructorArgs;
 
 				if (constructor.IsPublic)
 				{
-					compiler.AddSymbolNative(klassName + "_" + symbolName, GenerateConstructor(klass, constructor));
+					compiler.AddSymbolNative(pattern.Inject(formatDictionary), GenerateConstructor(klass, constructor));
 				}
 			}
 		}
