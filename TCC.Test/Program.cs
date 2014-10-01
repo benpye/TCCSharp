@@ -65,14 +65,14 @@ int main()
 	testingclass_printfield(inst);
 	testingclass_set_teststring(inst, ""Another string"");
 	testingclass_printfield(inst);
-	testingclass_writeline(testingclass_get_teststring(inst));
+	for(int i = 0; i < 1000; i++)
+		testingclass_writeline(testingclass_get_teststring(inst));
 	gc_free(inst);
 	testingclass_writeline(""Complete"");
 	return 0;
 }
 ");
 			compiler.Run(0, new string[] { });
-
 		}
 	}
 }

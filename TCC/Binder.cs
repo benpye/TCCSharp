@@ -13,7 +13,7 @@ namespace TCC
 		private CC compiler;
 
 		// Array of types that we can marshal directly, otherwise we use handles
-		private Type[] simpleTypes = {
+		private static Type[] simpleTypes = {
 			typeof(void),
 			typeof(IntPtr),
 			typeof(Byte),
@@ -33,7 +33,7 @@ namespace TCC
 			compiler = tcc;
 
 			// Generic GC free
-			compiler.AddSymbolNative("gc_free", GenerateGCFree());
+			compiler.AddSymbol("gc_free", (Action<IntPtr>)GCFree);
 		}
 
 		public void BindClass(Type klass)
@@ -98,15 +98,10 @@ namespace TCC
 			}
 		}
 
-		public Delegate GenerateConstructor(Type klass, ConstructorInfo method)
+		private static void GetParameterInfo(ParameterInfo[] parameterInfos, 
+			List<Type> parameterTypesList, 
+			List<Tuple<Type, bool>> marshalTypes)
 		{
-			bool isStatic = method.IsStatic;
-			bool isMarshallableReturn = IsMarshallableType(klass);
-
-			var parameterInfos = method.GetParameters();
-			List<Type> parameterTypesList = new List<Type>();
-			List<Tuple<Type, bool>> marshalTypes = new List<Tuple<Type, bool>>();
-
 			foreach (var p in parameterInfos)
 			{
 				if (IsMarshallableType(p.ParameterType))
@@ -120,6 +115,16 @@ namespace TCC
 					marshalTypes.Add(new Tuple<Type, bool>(p.ParameterType, true));
 				}
 			}
+		}
+
+		public Delegate GenerateConstructor(Type klass, ConstructorInfo method)
+		{
+			bool isMarshallableReturn = IsMarshallableType(klass);
+
+			List<Type> parameterTypesList = new List<Type>();
+			List<Tuple<Type, bool>> marshalTypes = new List<Tuple<Type, bool>>();
+
+			GetParameterInfo(method.GetParameters(), parameterTypesList, marshalTypes);
 
 			Type returnType = isMarshallableReturn ? klass : typeof(IntPtr);
 
@@ -133,17 +138,7 @@ namespace TCC
 
 			ILGenerator il = methodMethod.GetILGenerator();
 
-			int argc = 0;
-
-			foreach (var t in marshalTypes)
-			{
-				il.Emit(OpCodes.Ldarg, argc);
-				argc++;
-				if (t.Item2)
-				{
-					il.GetClass(t.Item1);
-				}
-			}
+			il.MarshalMethodArgs(klass, true, marshalTypes);
 
 			il.Emit(OpCodes.Newobj, method);
 
@@ -162,26 +157,13 @@ namespace TCC
 			bool isStatic = method.IsStatic;
 			bool isMarshallableReturn = IsMarshallableType(method.ReturnType);
 
-			var parameterInfos = method.GetParameters();
 			List<Type> parameterTypesList = new List<Type>();
 			List<Tuple<Type, bool>> marshalTypes = new List<Tuple<Type, bool>>();
 
 			if (!isStatic)
 				parameterTypesList.Add(typeof(IntPtr));
 
-			foreach (var p in parameterInfos)
-			{
-				if (IsMarshallableType(p.ParameterType))
-				{
-					parameterTypesList.Add(p.ParameterType);
-					marshalTypes.Add(new Tuple<Type, bool>(p.ParameterType, false));
-				}
-				else
-				{
-					parameterTypesList.Add(typeof(IntPtr));
-					marshalTypes.Add(new Tuple<Type, bool>(p.ParameterType, true));
-				}
-			}
+			GetParameterInfo(method.GetParameters(), parameterTypesList, marshalTypes);
 
 			Type returnType = isMarshallableReturn ? method.ReturnType : typeof(IntPtr);
 
@@ -195,24 +177,7 @@ namespace TCC
 
 			ILGenerator il = methodMethod.GetILGenerator();
 
-			int argc = 0;
-
-			if (!isStatic)
-			{
-				il.Emit(OpCodes.Ldarg_0);
-				il.GetClass(klass);
-				argc++;
-			}
-
-			foreach (var t in marshalTypes)
-			{
-				il.Emit(OpCodes.Ldarg, argc);
-				argc++;
-				if (t.Item2)
-				{
-					il.GetClass(t.Item1);
-				}
-			}
+			il.MarshalMethodArgs(klass, isStatic, marshalTypes);
 
 			if (isStatic || klass.IsValueType)
 				il.Emit(OpCodes.Call, method);
@@ -381,29 +346,13 @@ namespace TCC
 			return propertySetter.CreateDelegate(setterFunc);
 		}
 
-		private Delegate GenerateGCFree()
+		private static void GCFree(IntPtr ptr)
 		{
-			Type[] parameterTypes = new Type[] { typeof(IntPtr) };
-			Type returnType = typeof(void);
-
-			DynamicMethod gcFree = new DynamicMethod(
-				"TCCGCFree",
-				returnType,
-				parameterTypes,
-				true);
-
-			ILGenerator il = gcFree.GetILGenerator();
-			il.Emit(OpCodes.Ldarg_0);
-			il.GetGCHandle();
-			il.Emit(OpCodes.Call, typeof(GCHandle).GetMethod("Free"));
-			il.Emit(OpCodes.Ret);
-
-			Type freeFunc = DelegateWrapper.GenerateDelegateType(returnType, parameterTypes);
-
-			return gcFree.CreateDelegate(freeFunc);
+			GCHandle gch = GCHandle.FromIntPtr(ptr);
+			gch.Free();
 		}
 
-		private bool IsMarshallableType(Type klass)
+		private static bool IsMarshallableType(Type klass)
 		{
 			return simpleTypes.Contains(klass.GetElementType()) || simpleTypes.Contains(klass) || klass.IsEnum;
 		}

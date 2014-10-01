@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
 namespace TCC
@@ -34,6 +35,28 @@ namespace TCC
 				il.Emit(OpCodes.Box, klass);
 			il.Emit(OpCodes.Call, typeof(GCHandle).GetMethod("Alloc", new Type[]{ typeof(object) }));
 			il.Emit(OpCodes.Call, typeof(GCHandle).GetMethod("ToIntPtr"));
+		}
+
+		public static void MarshalMethodArgs(this ILGenerator il, Type klass, bool isStatic, List<Tuple<Type, bool>> marshalTypes)
+		{
+			int argc = 0;
+
+			if (!isStatic)
+			{
+				il.Emit(OpCodes.Ldarg_0);
+				il.GetClass(klass);
+				argc++;
+			}
+
+			foreach (var t in marshalTypes)
+			{
+				il.Emit(OpCodes.Ldarg, argc);
+				argc++;
+				if (t.Item2)
+				{
+					il.GetClass(t.Item1);
+				}
+			}
 		}
 	}
 }
