@@ -47,10 +47,10 @@ namespace TCC
 				var propName = prop.Name.ToLower();
 
 				if (prop.GetGetMethod().IsPublic)
-					compiler.AddSymbolNative(klassName + "_get_" + propName, GeneratePropertyGetter(klass, prop));
+					compiler.AddSymbolNative(klassName + "_get_" + propName, GenerateMethod(klass, prop.GetGetMethod()));
 
 				if (prop.GetSetMethod().IsPublic)
-					compiler.AddSymbolNative(klassName + "_set_" + propName, GeneratePropertySetter(klass, prop));
+					compiler.AddSymbolNative(klassName + "_set_" + propName, GenerateMethod(klass, prop.GetSetMethod()));
 			}
 
 			// Fields
@@ -268,82 +268,6 @@ namespace TCC
 			Type setterFunc = DelegateWrapper.GenerateDelegateType(returnType, parameterTypes);
 
 			return fieldSetter.CreateDelegate(setterFunc);
-		}
-
-		public Delegate GeneratePropertyGetter(Type klass, PropertyInfo property)
-		{
-			bool isStatic = property.GetGetMethod().IsStatic;
-			bool isMarshallable = IsMarshallableType(property.PropertyType);
-
-			Type[] parameterTypes = isStatic ? new Type[] { } : new Type[] { typeof(IntPtr) };
-			Type returnType = isMarshallable ? property.PropertyType : typeof(IntPtr);
-
-			DynamicMethod propertyGetter = new DynamicMethod(
-				"TCC" + klass.Name + property.Name + "PropertyGetter",
-				returnType,
-				parameterTypes,
-				true);
-
-			ILGenerator il = propertyGetter.GetILGenerator();
-
-			if (!isStatic)
-			{
-				il.Emit(OpCodes.Ldarg_0);
-				il.GetClass(klass);
-			}
-
-			if (isStatic || klass.IsValueType)
-				il.Emit(OpCodes.Call, property.GetGetMethod());
-			else
-				il.Emit(OpCodes.Callvirt, property.GetGetMethod());
-
-			if (!isMarshallable)
-				il.WrapClass(property.PropertyType);
-
-			il.Emit(OpCodes.Ret);
-
-			Type getterFunc = DelegateWrapper.GenerateDelegateType(returnType, parameterTypes);
-
-			return propertyGetter.CreateDelegate(getterFunc);
-		}
-
-		private Delegate GeneratePropertySetter(Type klass, PropertyInfo property)
-		{
-			bool isStatic = property.GetSetMethod().IsStatic;
-			bool isMarshallable = IsMarshallableType(property.PropertyType);
-
-			Type inType = isMarshallable ? property.PropertyType : typeof(IntPtr);
-			Type[] parameterTypes = isStatic ? new Type[] { inType } : new Type[] { typeof(IntPtr), inType };
-			Type returnType = typeof(void);
-
-			DynamicMethod propertySetter = new DynamicMethod(
-				"TCC" + klass.Name + property.Name + "PropertySetter",
-				returnType,
-				parameterTypes,
-				true);
-
-			ILGenerator il = propertySetter.GetILGenerator();
-
-			il.Emit(OpCodes.Ldarg_0);
-			if (!isStatic)
-			{
-				il.GetClass(klass);
-				il.Emit(OpCodes.Ldarg_1);
-			}
-
-			if (!isMarshallable)
-				il.GetClass(property.PropertyType);
-
-			if (isStatic || klass.IsValueType)
-				il.Emit(OpCodes.Call, property.GetSetMethod());
-			else
-				il.Emit(OpCodes.Callvirt, property.GetSetMethod());
-
-			il.Emit(OpCodes.Ret);
-
-			Type setterFunc = DelegateWrapper.GenerateDelegateType(returnType, parameterTypes);
-
-			return propertySetter.CreateDelegate(setterFunc);
 		}
 
 		private static void GCFree(IntPtr ptr)
