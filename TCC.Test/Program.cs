@@ -28,12 +28,14 @@ namespace TCC.Test
 				return new TestingClass();
 			}
 
+			[Name("newname")]
 			public static void WriteLine(string msg)
 			{
 				Console.WriteLine(msg);
 			}
 
 			public string TestString { get; set; }
+			public static string StaticProperty { get; set; }
 
 			public void PrintField()
 			{
@@ -48,9 +50,11 @@ namespace TCC.Test
 
 			bind.BindClass(typeof(TestingClass));
 
+			TestingClass.StaticProperty = "Statics are global";
+
 			compiler.SetOutputType(CC.OutputType.Memory);
 			compiler.SetErrorFunction(Console.WriteLine);
-			compiler.SetLibPath(AppDomain.CurrentDomain.BaseDirectory);
+			//compiler.SetLibPath(AppDomain.CurrentDomain.BaseDirectory);
 
 			compiler.CompileString(@"
 int main()
@@ -59,14 +63,17 @@ int main()
 	testingclass_printfield(inst);
 	testingclass_set_teststring(inst, ""Another string"");
 	testingclass_printfield(inst);
-	testingclass_writeline(testingclass_get_teststring(inst));
+	testingclass_newname(testingclass_get_teststring(inst));
 	gc_free(inst);
 	inst = (void *)testingclass_new();
 	testingclass_printfield(inst);
 	testingclass_set_teststring(inst, ""Another string"");
 	testingclass_printfield(inst);
 	gc_free(inst);
-	testingclass_writeline(""Complete"");
+	testingclass_newname(testingclass_get_staticproperty());
+	testingclass_set_staticproperty(""This is a different value"");
+	testingclass_newname(testingclass_get_staticproperty());
+	testingclass_newname(""Complete"");
 	return 0;
 }
 ");

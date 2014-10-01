@@ -35,6 +35,12 @@
     <Compile Include="Binder.cs" />
     <Compile Include="ILHelper.cs" />
     <Compile Include="DelegateWrapper.cs" />
+    <Compile Include="BinderAttributes.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <ItemGroup>
+    <None Include="TCC.dll.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>

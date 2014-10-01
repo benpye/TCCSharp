@@ -36,15 +36,28 @@ namespace TCC
 			compiler.AddSymbol("gc_free", (Action<IntPtr>)GCFree);
 		}
 
-		public void BindClass(Type klass)
+		private static string GetNameFromAttributes(string defaultValue, MemberInfo obj)
 		{
-			var klassName = klass.Name.ToLower();
+			foreach (var a in obj.GetCustomAttributes(true))
+			{
+				if (a is NameAttribute)
+				{
+					return (a as NameAttribute).NameOverride;
+				}
+			}
+
+			return defaultValue;
+		}
+
+		public void BindClass(Type klass, string prefix = "")
+		{
+			var klassName = prefix + GetNameFromAttributes(klass.Name.ToLower(), klass);
 
 			// Properties
 			var props = klass.GetProperties();
 			foreach (var prop in props)
 			{
-				var propName = prop.Name.ToLower();
+				var propName = GetNameFromAttributes(prop.Name.ToLower(), prop);
 
 				if (prop.GetGetMethod().IsPublic)
 					compiler.AddSymbolNative(klassName + "_get_" + propName, GenerateMethod(klass, prop.GetGetMethod()));
@@ -57,7 +70,7 @@ namespace TCC
 			var fields = klass.GetFields();
 			foreach (var field in fields)
 			{
-				var fieldName = field.Name.ToLower();
+				var fieldName = GetNameFromAttributes(field.Name.ToLower(), field);
 
 				if (field.IsPublic)
 				{
@@ -70,7 +83,7 @@ namespace TCC
 			var methods = klass.GetMethods();
 			foreach (var method in methods)
 			{
-				var methodName = method.Name.ToLower();
+				var methodName = GetNameFromAttributes(method.Name.ToLower(), method);
 
 				if (method.IsPublic && !method.IsSpecialName)
 				{
@@ -88,12 +101,15 @@ namespace TCC
 				foreach (var p in constructorParameters)
 					constructorName += p.ParameterType.Name.ToLower();
 
+				var symbolName = "new";
+				if (constructorParameters.Length > 0)
+					symbolName += "_" + constructorName;
+
+				symbolName = GetNameFromAttributes(symbolName, constructor);
+
 				if (constructor.IsPublic)
 				{
-					var symbolName = klassName + "_new";
-					if (constructorParameters.Length > 0)
-						symbolName += "_" + constructorName;
-					compiler.AddSymbolNative(symbolName, GenerateConstructor(klass, constructor));
+					compiler.AddSymbolNative(klassName + "_" + symbolName, GenerateConstructor(klass, constructor));
 				}
 			}
 		}
