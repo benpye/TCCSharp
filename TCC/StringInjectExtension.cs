@@ -103,6 +103,10 @@ namespace TCC
 				case 'u':
 					symbol = Char.ToUpper(symbol[0]) + symbol.Substring(1);
 					break;
+				case 's':
+					var parts = Regex.Split(symbol, @"(?<!^)(?=[A-Z])");
+					symbol = String.Join("_", parts);
+					break;
 				default:
 					break;
 				}

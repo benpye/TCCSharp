@@ -34,7 +34,7 @@ namespace TCC.Test
 				Console.WriteLine(msg);
 			}
 
-			[CSymbol("{class:L}_{mutator:L}_tesstring")]
+			[CSymbol("{class:sL}_{mutator:L}_tesstring")]
 			public string TestString { get; set; }
 			public static string StaticProperty { get; set; }
 
@@ -62,13 +62,13 @@ int main()
 {
 	void *inst = (void *)testingclass_newstring(""Different string"");
 	testingclass_printfield(inst);
-	testingclass_set_tesstring(inst, ""Another string"");
+	testing_class_set_tesstring(inst, ""Another string"");
 	testingclass_printfield(inst);
-	testingclass_newname(testingclass_get_tesstring(inst));
+	testingclass_newname(testing_class_get_tesstring(inst));
 	gc_free(inst);
 	inst = (void *)testingclass_new();
 	testingclass_printfield(inst);
-	testingclass_set_tesstring(inst, ""Another string"");
+	testing_class_set_tesstring(inst, ""Another string"");
 	testingclass_printfield(inst);
 	gc_free(inst);
 	testingclass_newname(testingclass_get_staticproperty());
