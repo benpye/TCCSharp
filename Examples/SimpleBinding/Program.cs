@@ -33,17 +33,32 @@ namespace TCC.Examples.SimpleBinding
 		{
 			CC compiler = new CC();
 
+			// If libtcc1.a is not in the default location where is it
+			if (args.Length > 0)
+				compiler.SetLibPath(args[0]);
+
+			// Pipe any tcc errors straight to Console.WriteLine
+			compiler.SetErrorFunction(Console.WriteLine);
+
 			// This must be called before any compilation
 			compiler.SetOutputType(CC.OutputType.Memory);
 
 			compiler.CompileString(ProgramCode);
 
+			// As a test we add a symbol the compiled program can use. You may 
+			// also add a library with CC.AddLibrary and use symbols from there.
 			compiler.AddSymbol("add", (Func<int, int, int>)Add);
 
+			// Relocate the code to somewhere it can be executed from
 			compiler.Relocate(CC.RelocateAuto);
 
+			// Get the entry symbol
 			var foo = compiler.GetSymbol<Func<int, int>>("foo");
 
+			GC.Collect();
+			GC.WaitForPendingFinalizers();
+
+			// Run the unmanaged code via the delegate
 			foo(32);
 		}
 	}

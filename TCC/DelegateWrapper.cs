@@ -21,10 +21,10 @@ namespace TCC
 		public static Type GenerateDelegateType(Type returnType, Type[] parameterTypes)
 		{
 			TypeBuilder tb = moduleBuilder.DefineType("DelegateWrapperDelegate" + Guid.NewGuid(),
-				TypeAttributes.Class | TypeAttributes.Public | TypeAttributes.Sealed | TypeAttributes.AnsiClass, typeof(MulticastDelegate));
+				TypeAttributes.Class | TypeAttributes.Public | TypeAttributes.Sealed | TypeAttributes.AnsiClass | TypeAttributes.AutoClass, typeof(MulticastDelegate));
 
 			var constructor = tb.DefineConstructor(MethodAttributes.RTSpecialName |
-				MethodAttributes.SpecialName | MethodAttributes.Public | MethodAttributes.HideBySig,
+				MethodAttributes.Public | MethodAttributes.HideBySig,
 				CallingConventions.Standard, new Type[] { typeof(object), typeof(IntPtr) });
 			constructor.SetImplementationFlags(MethodImplAttributes.Runtime | MethodImplAttributes.Managed);
 
@@ -40,7 +40,7 @@ namespace TCC
 			return tb.CreateType();
 		}
 
-		public static Type GetStaticDelegateTypeForType(Type delegateType)
+		private static Tuple<Type, Type[]> GetInvokeInfo(Type delegateType)
 		{
 			MethodInfo invokeInfo = delegateType.GetMethod("Invoke");
 			Type invokeReturnType = invokeInfo.ReturnType;
@@ -52,7 +52,13 @@ namespace TCC
 				invokeParameterTypes[i] = invokeParameters[i].ParameterType;
 			}
 
-			return GenerateDelegateType(invokeReturnType, invokeParameterTypes);
+			return new Tuple<Type, Type[]>(invokeReturnType, invokeParameterTypes);
+		}
+
+		public static Type GetStaticDelegateType(Type delegateType)
+		{
+			var types = GetInvokeInfo(delegateType);
+			return GenerateDelegateType(types.Item1, types.Item2);
 		}
 
 		public static Delegate WrapDelegate(Delegate method, Type type = null)
@@ -60,10 +66,48 @@ namespace TCC
 			if(type == null)
 			{
 				Type delegateType = method.GetType();
-				type = GetStaticDelegateTypeForType(delegateType);
+				type = GetStaticDelegateType(delegateType);
 			}
 
 			return Delegate.CreateDelegate(type, method.Target, method.Method, true);
+		}
+
+		public static Delegate GetCalliDelegate(IntPtr nativePointer, Type delegateType)
+		{
+			var types = GetInvokeInfo(delegateType);
+
+			// TODO: This sort of code is all over the place, it should be refactored
+			DynamicMethod delegateMethod = new DynamicMethod(
+				"DelegateWrapperGetCalliDelegate" + Guid.NewGuid(),
+				types.Item1,
+				types.Item2,
+				// Not 100% sure why we need to set the type here, but it does
+				// make .NET work
+				typeof(DelegateWrapper),
+				true);
+
+			ILGenerator il = delegateMethod.GetILGenerator();
+
+			for (int i = 0; i < types.Item2.Length; i++)
+				il.Emit(OpCodes.Ldarg, i);
+
+			switch (IntPtr.Size)
+			{
+				case 4:
+				il.Emit(OpCodes.Ldc_I4, nativePointer.ToInt32());
+					break;
+				case 8:
+				il.Emit(OpCodes.Ldc_I8, nativePointer.ToInt64());
+					break;
+				default:
+					throw new PlatformNotSupportedException();
+			}
+
+			il.EmitCalli(OpCodes.Calli, CallingConvention.Cdecl, types.Item1, types.Item2);
+
+			il.Emit(OpCodes.Ret);
+
+			return delegateMethod.CreateDelegate(delegateType);
 		}
 	}
 }

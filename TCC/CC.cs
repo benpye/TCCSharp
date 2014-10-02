@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Reflection.Emit;
 using System.Runtime.InteropServices;
+using System.Collections.Generic;
 
 namespace TCC
 {
@@ -82,15 +83,32 @@ namespace TCC
 		}
 
 		private IntPtr s;
+		private List<Delegate> delegateCache;
+		private Native.NativeErrorDelegate errorDelegate;
+		private Action<string> errorHandler;
 
 		public CC()
 		{
 			s = Native.tcc_new();
+			if (s == IntPtr.Zero)
+				throw new Exception("Could not create native TCC state");
+
+			// We have to cache all delegates passed to native code else the GC
+			// will collect them!
+			delegateCache = new List<Delegate>();
+			errorDelegate = DispatchError;
+			Native.tcc_set_error_func(s, IntPtr.Zero, errorDelegate);
 		}
 
 		~CC()
 		{
 			Native.tcc_delete(s);
+		}
+
+		private void DispatchError(IntPtr opaque, string msg)
+		{
+			if (errorHandler != null)
+				errorHandler(msg);
 		}
 
 		public void SetLibPath(string path)
@@ -100,7 +118,7 @@ namespace TCC
 
 		public void SetErrorFunction(Action<string> function)
 		{
-			Native.tcc_set_error_func(s, IntPtr.Zero, ((IntPtr opaque, string msg) => function(msg)));
+			errorHandler = function;
 		}
 
 		public void SetOptions(string options)
@@ -173,7 +191,9 @@ namespace TCC
 		{
 			// We normally wrap delegates as a usability improvement, without doing this
 			// we cannot allow for generic delegates (Task, Action), nor can we ensure Cdecl
-			int r = Native.tcc_add_symbol(s, name, DelegateWrapper.WrapDelegate(method));
+			var d = DelegateWrapper.WrapDelegate(method);
+			delegateCache.Add(d);
+			int r = Native.tcc_add_symbol(s, name, d);
 			if (r < 0)
 				throw new Exception();
 		}
@@ -183,6 +203,7 @@ namespace TCC
 			// When using DynamicMethod we are able to use the correct Delegate type first
 			// time, this may also be useful if performance is important, though TCC is likely
 			// never going to be super high performance
+			delegateCache.Add(method);
 			int r = Native.tcc_add_symbol(s, name, method);
 			if (r < 0)
 				throw new Exception();
@@ -209,17 +230,16 @@ namespace TCC
 
 			return r;
 		}
-			
+
 		public T GetSymbol<T>(string name)
 		{
 			IntPtr funcPtr = Native.tcc_get_symbol(s, name);
 			if (funcPtr == IntPtr.Zero)
 				throw new Exception();
 
-			// This mess allows us to return a generic delegate
-			Type wrapType = DelegateWrapper.GetStaticDelegateTypeForType(typeof(T));
-
-			return (T)(object)DelegateWrapper.WrapDelegate(Marshal.GetDelegateForFunctionPointer(funcPtr, wrapType), typeof(T));
+			// We use our own delegate vs the default marshal behaviour so we can
+			// use generic delegate types.
+			return (T)(object)DelegateWrapper.GetCalliDelegate(funcPtr, typeof(T));
 		}
 	}
 }

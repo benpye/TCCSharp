@@ -5,7 +5,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TCC", "TCC\TCC.csproj", "{7
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Examples", "Examples", "{C05EF60B-376E-4CB8-9AB8-CF4A9F393149}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TCC.Examples.SimpleBinding", "TCC.Examples.SimpleBinding\TCC.Examples.SimpleBinding.csproj", "{A83521BE-C475-41B5-8335-4C4036E08CDF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleBinding", "Examples\SimpleBinding\SimpleBinding.csproj", "{A83521BE-C475-41B5-8335-4C4036E08CDF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -26,6 +26,6 @@ Global
 		{A83521BE-C475-41B5-8335-4C4036E08CDF} = {C05EF60B-376E-4CB8-9AB8-CF4A9F393149}
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
-		StartupItem = TCC.Examples.SimpleBinding\TCC.Examples.SimpleBinding.csproj
+		StartupItem = Examples\SimpleBinding\SimpleBinding.csproj
 	EndGlobalSection
 EndGlobal
