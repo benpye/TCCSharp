@@ -103,19 +103,25 @@ namespace TCC
 			Native.tcc_set_error_func(s, IntPtr.Zero, ((IntPtr opaque, string msg) => function(msg)));
 		}
 
-		public int SetOptions(string options)
+		public void SetOptions(string options)
 		{
-			return Native.tcc_set_options(s, options);
+			int r = Native.tcc_set_options(s, options);
+			if (r < 0)
+				throw new Exception();
 		}
 
-		public int AddIncludePath(string path)
+		public void AddIncludePath(string path)
 		{
-			return Native.tcc_add_include_path(s, path);
+			int r = Native.tcc_add_include_path(s, path);
+			if (r < 0)
+				throw new Exception();
 		}
 
-		public int AddSysIncludePath(string path)
+		public void AddSysIncludePath(string path)
 		{
-			return Native.tcc_add_sysinclude_path(s, path);
+			int r = Native.tcc_add_sysinclude_path(s, path);
+			if (r < 0)
+				throw new Exception();
 		}
 
 		public void DefineSymbol(string symbol, string value)
@@ -128,49 +134,65 @@ namespace TCC
 			Native.tcc_undefine_symbol(s, symbol);
 		}
 
-		public int AddFile(string filename)
+		public void AddFile(string filename)
 		{
-			return Native.tcc_add_file(s, filename);
+			int r = Native.tcc_add_file(s, filename);
+			if (r < 0)
+				throw new Exception();
 		}
 
-		public int CompileString(string buffer)
+		public void CompileString(string buffer)
 		{
-			return Native.tcc_compile_string(s, buffer);
+			int r = Native.tcc_compile_string(s, buffer);
+			if (r < 0)
+				throw new Exception();
 		}
 
-		public int SetOutputType(OutputType type)
+		public void SetOutputType(OutputType type)
 		{
-			return Native.tcc_set_output_type(s, type);
+			int r = Native.tcc_set_output_type(s, type);
+			if (r < 0)
+				throw new Exception();
 		}
 
-		public int AddLibraryPath(string path)
+		public void AddLibraryPath(string path)
 		{
-			return Native.tcc_add_library_path(s, path);
+			int r = Native.tcc_add_library_path(s, path);
+			if (r < 0)
+				throw new Exception();
 		}
 
-		public int AddLibrary(string library)
+		public void AddLibrary(string library)
 		{
-			return Native.tcc_add_library(s, library);
+			int r = Native.tcc_add_library(s, library);
+			if (r < 0)
+				throw new Exception();
 		}
 
-		public int AddSymbol(string name, Delegate method)
+		public void AddSymbol(string name, Delegate method)
 		{
 			// We normally wrap delegates as a usability improvement, without doing this
 			// we cannot allow for generic delegates (Task, Action), nor can we ensure Cdecl
-			return Native.tcc_add_symbol(s, name, DelegateWrapper.WrapDelegate(method));
+			int r = Native.tcc_add_symbol(s, name, DelegateWrapper.WrapDelegate(method));
+			if (r < 0)
+				throw new Exception();
 		}
 
-		public int AddSymbolNative(string name, Delegate method)
+		public void AddSymbolNative(string name, Delegate method)
 		{
 			// When using DynamicMethod we are able to use the correct Delegate type first
 			// time, this may also be useful if performance is important, though TCC is likely
 			// never going to be super high performance
-			return Native.tcc_add_symbol(s, name, method);
+			int r = Native.tcc_add_symbol(s, name, method);
+			if (r < 0)
+				throw new Exception();
 		}
 
-		public int OutputFile(string filename)
+		public void OutputFile(string filename)
 		{
-			return Native.tcc_output_file(s, filename);
+			int r = Native.tcc_output_file(s, filename);
+			if (r < 0)
+				throw new Exception();
 		}
 
 		public int Run(int argc, string[] argv)
@@ -180,16 +202,24 @@ namespace TCC
 
 		public int Relocate(IntPtr ptr)
 		{
-			return Native.tcc_relocate(s, ptr);
-		}
+			int r = Native.tcc_relocate(s, ptr);
 
+			if (r < 0)
+				throw new Exception();
+
+			return r;
+		}
+			
 		public T GetSymbol<T>(string name)
 		{
 			IntPtr funcPtr = Native.tcc_get_symbol(s, name);
 			if (funcPtr == IntPtr.Zero)
-				throw new NullReferenceException();
+				throw new Exception();
 
-			return (T)(object)Marshal.GetDelegateForFunctionPointer(funcPtr, typeof(T));
+			// This mess allows us to return a generic delegate
+			Type wrapType = DelegateWrapper.GetStaticDelegateTypeForType(typeof(T));
+
+			return (T)(object)DelegateWrapper.WrapDelegate(Marshal.GetDelegateForFunctionPointer(funcPtr, wrapType), typeof(T));
 		}
 	}
 }

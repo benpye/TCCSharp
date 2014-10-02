@@ -56,7 +56,7 @@ namespace TCC
 			set { _constructorPattern = value; }
 		}
 
-		private string _propertyPattern = "{class:L}_{mutator:L}_{property:L}";
+		private string _propertyPattern = "{class:L}_{mutator:L}_{name:L}";
 		public string PropertyPattern
 		{
 			get { return _propertyPattern; }
@@ -64,7 +64,7 @@ namespace TCC
 		}
 
 
-		private string _fieldPattern = "{class:L}_{mutator:L}_{field:L}";
+		private string _fieldPattern = "{class:L}_{mutator:L}_{name:L}";
 		public string FieldPattern
 		{
 			get { return _fieldPattern; }
@@ -72,7 +72,7 @@ namespace TCC
 		}
 
 
-		private string _methodPattern = "{class:L}_{method:L}";
+		private string _methodPattern = "{class:L}_{name:L}";
 		public string MethodPattern
 		{
 			get { return _methodPattern; }
@@ -92,7 +92,7 @@ namespace TCC
 			{
 				var pattern = GetNameFromAttributes(PropertyPattern, prop);
 
-				formatDictionary["property"] = prop.Name;
+				formatDictionary["name"] = prop.Name;
 				formatDictionary["mutator"]  = "get";
 
 				if (prop.GetGetMethod().IsPublic)
@@ -110,7 +110,7 @@ namespace TCC
 			{
 				var pattern = GetNameFromAttributes(FieldPattern, field);
 
-				formatDictionary["field"] = field.Name;
+				formatDictionary["name"] = field.Name;
 
 				if (field.IsPublic)
 				{
@@ -127,7 +127,7 @@ namespace TCC
 			{
 				var pattern = GetNameFromAttributes(MethodPattern, method);
 
-				formatDictionary["method"] = method.Name;
+				formatDictionary["name"] = method.Name;
 
 				if (method.IsPublic && !method.IsSpecialName)
 				{
@@ -336,7 +336,7 @@ namespace TCC
 
 		private static bool IsMarshallableType(Type klass)
 		{
-			return simpleTypes.Contains(klass.GetElementType()) || simpleTypes.Contains(klass) || klass.IsEnum;
+			return simpleTypes.Contains(klass) || klass.IsEnum;
 		}
 	}
 }

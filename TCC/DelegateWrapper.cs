@@ -40,9 +40,8 @@ namespace TCC
 			return tb.CreateType();
 		}
 
-		public static Delegate WrapDelegate(Delegate method)
+		public static Type GetStaticDelegateTypeForType(Type delegateType)
 		{
-			Type delegateType = method.GetType();
 			MethodInfo invokeInfo = delegateType.GetMethod("Invoke");
 			Type invokeReturnType = invokeInfo.ReturnType;
 			ParameterInfo[] invokeParameters = invokeInfo.GetParameters();
@@ -53,7 +52,16 @@ namespace TCC
 				invokeParameterTypes[i] = invokeParameters[i].ParameterType;
 			}
 
-			var type = GenerateDelegateType(invokeReturnType, invokeParameterTypes);
+			return GenerateDelegateType(invokeReturnType, invokeParameterTypes);
+		}
+
+		public static Delegate WrapDelegate(Delegate method, Type type = null)
+		{
+			if(type == null)
+			{
+				Type delegateType = method.GetType();
+				type = GetStaticDelegateTypeForType(delegateType);
+			}
 
 			return Delegate.CreateDelegate(type, method.Target, method.Method, true);
 		}

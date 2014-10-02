@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TCC.Test", "TCC.Test\TCC.Test.csproj", "{44BCDF82-D770-4020-81BD-10C0073B82EA}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TCC", "TCC\TCC.csproj", "{736CA311-8486-44AF-8D48-2057718A0AB7}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Examples", "Examples", "{C05EF60B-376E-4CB8-9AB8-CF4A9F393149}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TCC.Examples.SimpleBinding", "TCC.Examples.SimpleBinding\TCC.Examples.SimpleBinding.csproj", "{A83521BE-C475-41B5-8335-4C4036E08CDF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -11,16 +13,19 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{44BCDF82-D770-4020-81BD-10C0073B82EA}.Debug|x86.ActiveCfg = Debug|x86
-		{44BCDF82-D770-4020-81BD-10C0073B82EA}.Debug|x86.Build.0 = Debug|x86
-		{44BCDF82-D770-4020-81BD-10C0073B82EA}.Release|x86.ActiveCfg = Release|x86
-		{44BCDF82-D770-4020-81BD-10C0073B82EA}.Release|x86.Build.0 = Release|x86
 		{736CA311-8486-44AF-8D48-2057718A0AB7}.Debug|x86.ActiveCfg = Debug|Any CPU
 		{736CA311-8486-44AF-8D48-2057718A0AB7}.Debug|x86.Build.0 = Debug|Any CPU
 		{736CA311-8486-44AF-8D48-2057718A0AB7}.Release|x86.ActiveCfg = Release|Any CPU
 		{736CA311-8486-44AF-8D48-2057718A0AB7}.Release|x86.Build.0 = Release|Any CPU
+		{A83521BE-C475-41B5-8335-4C4036E08CDF}.Debug|x86.ActiveCfg = Debug|x86
+		{A83521BE-C475-41B5-8335-4C4036E08CDF}.Debug|x86.Build.0 = Debug|x86
+		{A83521BE-C475-41B5-8335-4C4036E08CDF}.Release|x86.ActiveCfg = Release|x86
+		{A83521BE-C475-41B5-8335-4C4036E08CDF}.Release|x86.Build.0 = Release|x86
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{A83521BE-C475-41B5-8335-4C4036E08CDF} = {C05EF60B-376E-4CB8-9AB8-CF4A9F393149}
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
-		StartupItem = TCC.Test\TCC.Test.csproj
+		StartupItem = TCC.Examples.SimpleBinding\TCC.Examples.SimpleBinding.csproj
 	EndGlobalSection
 EndGlobal

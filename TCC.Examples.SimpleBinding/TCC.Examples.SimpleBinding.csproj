@@ -3,10 +3,10 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
-    <ProjectGuid>{44BCDF82-D770-4020-81BD-10C0073B82EA}</ProjectGuid>
+    <ProjectGuid>{A83521BE-C475-41B5-8335-4C4036E08CDF}</ProjectGuid>
     <OutputType>Exe</OutputType>
-    <RootNamespace>TCC.Test</RootNamespace>
-    <AssemblyName>TCC.Test</AssemblyName>
+    <RootNamespace>TCC.Examples.SimpleBinding</RootNamespace>
+    <AssemblyName>TCC.Examples.SimpleBinding</AssemblyName>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
     <DebugSymbols>true</DebugSymbols>
