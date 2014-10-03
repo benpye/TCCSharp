@@ -40,25 +40,25 @@ namespace TCC
 			return tb.CreateType();
 		}
 
-		private static Tuple<Type, Type[]> GetInvokeInfo(Type delegateType)
+		private static void GetInvokeInfo(Type delegateType, out Type returnType, out Type[] parameterTypes)
 		{
 			MethodInfo invokeInfo = delegateType.GetMethod("Invoke");
-			Type invokeReturnType = invokeInfo.ReturnType;
-			ParameterInfo[] invokeParameters = invokeInfo.GetParameters();
-			Type[] invokeParameterTypes = new Type[invokeParameters.Length];
+			returnType = invokeInfo.ReturnType;
+			ParameterInfo[] parameters = invokeInfo.GetParameters();
+			parameterTypes = new Type[parameters.Length];
 
-			for (int i = 0; i < invokeParameters.Length; i++)
+			for (int i = 0; i < parameters.Length; i++)
 			{
-				invokeParameterTypes[i] = invokeParameters[i].ParameterType;
+				parameterTypes[i] = parameters[i].ParameterType;
 			}
-
-			return new Tuple<Type, Type[]>(invokeReturnType, invokeParameterTypes);
 		}
 
 		public static Type GetStaticDelegateType(Type delegateType)
 		{
-			var types = GetInvokeInfo(delegateType);
-			return GenerateDelegateType(types.Item1, types.Item2);
+			Type returnType;
+			Type[] parameterTypes;
+			GetInvokeInfo(delegateType, out returnType, out parameterTypes);
+			return GenerateDelegateType(returnType, parameterTypes);
 		}
 
 		public static Delegate WrapDelegate(Delegate method, Type type = null)
@@ -74,13 +74,15 @@ namespace TCC
 
 		public static Delegate GetCalliDelegate(IntPtr nativePointer, Type delegateType)
 		{
-			var types = GetInvokeInfo(delegateType);
+			Type returnType;
+			Type[] parameterTypes;
+			GetInvokeInfo(delegateType, out returnType, out parameterTypes);
 
 			// TODO: This sort of code is all over the place, it should be refactored
 			DynamicMethod delegateMethod = new DynamicMethod(
 				"DelegateWrapperGetCalliDelegate" + Guid.NewGuid(),
-				types.Item1,
-				types.Item2,
+				returnType,
+				parameterTypes,
 				// Not 100% sure why we need to set the type here, but it does
 				// make .NET work
 				typeof(DelegateWrapper),
@@ -88,22 +90,22 @@ namespace TCC
 
 			ILGenerator il = delegateMethod.GetILGenerator();
 
-			for (int i = 0; i < types.Item2.Length; i++)
+			for (int i = 0; i < parameterTypes.Length; i++)
 				il.Emit(OpCodes.Ldarg, i);
 
 			switch (IntPtr.Size)
 			{
 				case 4:
-				il.Emit(OpCodes.Ldc_I4, nativePointer.ToInt32());
+					il.Emit(OpCodes.Ldc_I4, nativePointer.ToInt32());
 					break;
 				case 8:
-				il.Emit(OpCodes.Ldc_I8, nativePointer.ToInt64());
+					il.Emit(OpCodes.Ldc_I8, nativePointer.ToInt64());
 					break;
 				default:
 					throw new PlatformNotSupportedException();
 			}
 
-			il.EmitCalli(OpCodes.Calli, CallingConvention.Cdecl, types.Item1, types.Item2);
+			il.EmitCalli(OpCodes.Calli, CallingConvention.Cdecl, returnType, parameterTypes);
 
 			il.Emit(OpCodes.Ret);
 

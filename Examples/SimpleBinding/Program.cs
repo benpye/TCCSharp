@@ -55,9 +55,6 @@ namespace TCC.Examples.SimpleBinding
 			// Get the entry symbol
 			var foo = compiler.GetSymbol<Func<int, int>>("foo");
 
-			GC.Collect();
-			GC.WaitForPendingFinalizers();
-
 			// Run the unmanaged code via the delegate
 			foo(32);
 		}
