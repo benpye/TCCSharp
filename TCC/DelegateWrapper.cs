@@ -18,7 +18,13 @@ namespace TCC
 			moduleBuilder = assemblyBuilder.DefineDynamicModule("DelegateWrapperModule");
 		}
 
-		public static Type GenerateDelegateType(Type returnType, Type[] parameterTypes)
+		/// <summary>
+		/// Generates a delegate type at runtime given the return and parameter types.
+		/// </summary>
+		/// <returns>The Delegate type.</returns>
+		/// <param name="returnType">Return type.</param>
+		/// <param name="parameterTypes">Parameter types.</param>
+		public static Type GetDelegateType(Type returnType, Type[] parameterTypes)
 		{
 			TypeBuilder tb = moduleBuilder.DefineType("DelegateWrapperDelegate" + Guid.NewGuid(),
 				TypeAttributes.Class | TypeAttributes.Public | TypeAttributes.Sealed | TypeAttributes.AnsiClass | TypeAttributes.AutoClass, typeof(MulticastDelegate));
@@ -40,7 +46,13 @@ namespace TCC
 			return tb.CreateType();
 		}
 
-		private static void GetInvokeInfo(Type delegateType, out Type returnType, out Type[] parameterTypes)
+		/// <summary>
+		/// Gets the return and parameter types from a given delegate.
+		/// </summary>
+		/// <param name="delegateType">Delegate type.</param>
+		/// <param name="returnType">Return type.</param>
+		/// <param name="parameterTypes">Parameter types.</param>
+		public static void GetInvokeInfo(Type delegateType, out Type returnType, out Type[] parameterTypes)
 		{
 			MethodInfo invokeInfo = delegateType.GetMethod("Invoke");
 			returnType = invokeInfo.ReturnType;
@@ -53,15 +65,29 @@ namespace TCC
 			}
 		}
 
+		/// <summary>
+		/// Gets an equivilent delegate type, generating it at runtime.
+		/// This will also convert a generic delegate to a non generic Delegate
+		/// suitable for P/Invoke.
+		/// </summary>
+		/// <returns>The new delegate type.</returns>
+		/// <param name="delegateType">Delegate type.</param>
 		public static Type GetStaticDelegateType(Type delegateType)
 		{
 			Type returnType;
 			Type[] parameterTypes;
 			GetInvokeInfo(delegateType, out returnType, out parameterTypes);
-			return GenerateDelegateType(returnType, parameterTypes);
+			return GetDelegateType(returnType, parameterTypes);
 		}
 
-		public static Delegate WrapDelegate(Delegate method, Type type = null)
+		/// <summary>
+		/// Wraps a Delegate with a new delegate type, used to P/Invoke
+		/// delegates with Action<> or Func<> delegates.
+		/// </summary>
+		/// <returns>The wrapped delegate.</returns>
+		/// <param name="method">Method.</param>
+		/// <param name="type">Type.</param>
+		public static Delegate GetWrappedDelegate(Delegate method, Type type = null)
 		{
 			if(type == null)
 			{
@@ -72,6 +98,12 @@ namespace TCC
 			return Delegate.CreateDelegate(type, method.Target, method.Method, true);
 		}
 
+		/// <summary>
+		/// Builds a delegate that will call a native method,
+		/// </summary>
+		/// <returns>The delegate.</returns>
+		/// <param name="nativePointer">Native function pointer.</param>
+		/// <param name="delegateType">Delegate type.</param>
 		public static Delegate GetCalliDelegate(IntPtr nativePointer, Type delegateType)
 		{
 			Type returnType;

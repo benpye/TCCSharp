@@ -85,6 +85,20 @@ namespace TCC
 
 		}
 
+		/// <summary>
+		/// Formats the string given using the transforms specified by specifier.
+		/// The following are valid for specifier, they can be strung together and are
+		/// parsed left to right.
+		/// U - Transforms whole string to upper case.
+		/// L - Transforms whole string to lower case.
+		/// l - Transforms first character to lower case.
+		/// u - Transforms first character to upper case.
+		/// s - Splits string on every upper case character, adding an _ between.
+		/// Any unknown characters will be ignored.
+		/// </summary>
+		/// <returns>The symbol.</returns>
+		/// <param name="symbol">Symbol.</param>
+		/// <param name="specifier">Specifier.</param>
 		private static string FormatSymbol(string symbol, string specifier)
 		{
 			foreach (var c in specifier)

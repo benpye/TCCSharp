@@ -50,12 +50,20 @@ namespace TCC
 		}
 
 		private string _constructorPattern = "{class:L}_new{args:L}";
+		/// <summary>
+		/// Default pattern used to transform managed constructor symbols to C symbols.
+		/// </summary>
+		/// <value>The format pattern.</value>
 		public string ConstructorPattern
 		{
 			get { return _constructorPattern; }
 			set { _constructorPattern = value; }
 		}
 
+		/// <summary>
+		/// Default pattern used to transform managed property symbols to C symbols.
+		/// </summary>
+		/// <value>The format pattern.</value>
 		private string _propertyPattern = "{class:L}_{mutator:L}_{name:L}";
 		public string PropertyPattern
 		{
@@ -63,7 +71,10 @@ namespace TCC
 			set { _propertyPattern = value; }
 		}
 
-
+		/// <summary>
+		/// Default pattern used to transform managed field symbols to C symbols.
+		/// </summary>
+		/// <value>The format pattern.</value>
 		private string _fieldPattern = "{class:L}_{mutator:L}_{name:L}";
 		public string FieldPattern
 		{
@@ -71,7 +82,10 @@ namespace TCC
 			set { _fieldPattern = value; }
 		}
 
-
+		/// <summary>
+		/// Default pattern used to transform managed method symbols to C symbols.
+		/// </summary>
+		/// <value>The format pattern.</value>
 		private string _methodPattern = "{class:L}_{name:L}";
 		public string MethodPattern
 		{
@@ -79,6 +93,10 @@ namespace TCC
 			set { _methodPattern = value; }
 		}
 
+		/// <summary>
+		/// Uses reflection to best effort bind a managed class to C#.
+		/// </summary>
+		/// <param name="klass">Class type.</param>
 		public void BindClass(Type klass)
 		{
 			var klassName = GetNameFromAttributes(klass.Name, klass);
@@ -205,7 +223,7 @@ namespace TCC
 
 			il.Emit(OpCodes.Ret);
 
-			Type methodFunc = DelegateWrapper.GenerateDelegateType(returnType, parameterTypes);
+			Type methodFunc = DelegateWrapper.GetDelegateType(returnType, parameterTypes);
 
 			return methodMethod.CreateDelegate(methodFunc);
 		}
@@ -247,7 +265,7 @@ namespace TCC
 
 			il.Emit(OpCodes.Ret);
 
-			Type methodFunc = DelegateWrapper.GenerateDelegateType(returnType, parameterTypes);
+			Type methodFunc = DelegateWrapper.GetDelegateType(returnType, parameterTypes);
 
 			return methodMethod.CreateDelegate(methodFunc);
 		}
@@ -284,7 +302,7 @@ namespace TCC
 
 			il.Emit(OpCodes.Ret);
 
-			Type getterFunc = DelegateWrapper.GenerateDelegateType(returnType, parameterTypes);
+			Type getterFunc = DelegateWrapper.GetDelegateType(returnType, parameterTypes);
 
 			return fieldGetter.CreateDelegate(getterFunc);
 		}
@@ -323,7 +341,7 @@ namespace TCC
 
 			il.Emit(OpCodes.Ret);
 
-			Type setterFunc = DelegateWrapper.GenerateDelegateType(returnType, parameterTypes);
+			Type setterFunc = DelegateWrapper.GetDelegateType(returnType, parameterTypes);
 
 			return fieldSetter.CreateDelegate(setterFunc);
 		}
