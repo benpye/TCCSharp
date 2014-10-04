@@ -6,7 +6,9 @@ using System.Runtime.CompilerServices;
 
 namespace TCC
 {
-	public static class DelegateWrapper
+	// Maybe rip this and StringInjectExtension into their own project,
+	// these are both generic code and are helpful in other projects.
+	internal static class DelegateWrapper
 	{
 		private static AssemblyBuilder assemblyBuilder;
 		private static ModuleBuilder moduleBuilder;

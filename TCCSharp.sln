@@ -7,12 +7,18 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Examples", "Examples", "{C0
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleBinding", "Examples\SimpleBinding\SimpleBinding.csproj", "{A83521BE-C475-41B5-8335-4C4036E08CDF}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TCC.Test", "TCC.Test\TCC.Test.csproj", "{3242D36A-84D4-488B-8619-E63712CA121B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x86 = Debug|x86
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{3242D36A-84D4-488B-8619-E63712CA121B}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{3242D36A-84D4-488B-8619-E63712CA121B}.Debug|x86.Build.0 = Debug|Any CPU
+		{3242D36A-84D4-488B-8619-E63712CA121B}.Release|x86.ActiveCfg = Release|Any CPU
+		{3242D36A-84D4-488B-8619-E63712CA121B}.Release|x86.Build.0 = Release|Any CPU
 		{736CA311-8486-44AF-8D48-2057718A0AB7}.Debug|x86.ActiveCfg = Debug|Any CPU
 		{736CA311-8486-44AF-8D48-2057718A0AB7}.Debug|x86.Build.0 = Debug|Any CPU
 		{736CA311-8486-44AF-8D48-2057718A0AB7}.Release|x86.ActiveCfg = Release|Any CPU

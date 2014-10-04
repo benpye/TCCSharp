@@ -9,15 +9,10 @@ namespace TCC
 	{
 		public CSymbolAttribute(string nameOverride)
 		{
-			this.nameOverride = nameOverride;
+			this.NameOverride = nameOverride;
 		}
 
-		private string nameOverride;
-
-		public string NameOverride
-		{
-			get { return nameOverride; }
-		}
+		public string NameOverride { get; private set; }
 	}
 }
 

@@ -50,6 +50,7 @@ namespace TCC
 		}
 
 		private string _constructorPattern = "{class:L}_new{args:L}";
+
 		/// <summary>
 		/// Default pattern used to transform managed constructor symbols to C symbols.
 		/// </summary>
@@ -60,33 +61,36 @@ namespace TCC
 			set { _constructorPattern = value; }
 		}
 
+		private string _propertyPattern = "{class:L}_{mutator:L}_{name:L}";
+
 		/// <summary>
 		/// Default pattern used to transform managed property symbols to C symbols.
 		/// </summary>
 		/// <value>The format pattern.</value>
-		private string _propertyPattern = "{class:L}_{mutator:L}_{name:L}";
 		public string PropertyPattern
 		{
 			get { return _propertyPattern; }
 			set { _propertyPattern = value; }
 		}
 
+		private string _fieldPattern = "{class:L}_{mutator:L}_{name:L}";
+
 		/// <summary>
 		/// Default pattern used to transform managed field symbols to C symbols.
 		/// </summary>
 		/// <value>The format pattern.</value>
-		private string _fieldPattern = "{class:L}_{mutator:L}_{name:L}";
 		public string FieldPattern
 		{
 			get { return _fieldPattern; }
 			set { _fieldPattern = value; }
 		}
 
+		private string _methodPattern = "{class:L}_{name:L}";
+
 		/// <summary>
 		/// Default pattern used to transform managed method symbols to C symbols.
 		/// </summary>
 		/// <value>The format pattern.</value>
-		private string _methodPattern = "{class:L}_{name:L}";
 		public string MethodPattern
 		{
 			get { return _methodPattern; }
